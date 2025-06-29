@@ -1,0 +1,62 @@
+2025-06-22 17:29:37,967 DEBUG    root            Loaded Command Group: ['gcloud', 'app']
+2025-06-22 17:29:39,439 DEBUG    root            Loaded Command Group: ['gcloud', 'app', 'create']
+2025-06-22 17:29:39,452 DEBUG    root            Running [gcloud.app.create] with arguments: [--region: "nam5"]
+2025-06-22 17:29:39,535 DEBUG    google.auth.transport.requests Making request: GET http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/365268015602-compute@developer.gserviceaccount.com/?recursive=true
+2025-06-22 17:29:39,537 DEBUG    urllib3.connectionpool Starting new HTTP connection (1): metadata.google.internal:80
+2025-06-22 17:29:39,540 DEBUG    urllib3.connectionpool http://metadata.google.internal:80 "GET /computeMetadata/v1/instance/service-accounts/365268015602-compute@developer.gserviceaccount.com/?recursive=true HTTP/11" 200 154
+2025-06-22 17:29:39,541 DEBUG    google.auth.transport.requests Making request: GET http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/365268015602-compute@developer.gserviceaccount.com/token
+2025-06-22 17:29:39,543 DEBUG    urllib3.connectionpool http://metadata.google.internal:80 "GET /computeMetadata/v1/instance/service-accounts/365268015602-compute@developer.gserviceaccount.com/token HTTP/11" 200 871
+2025-06-22 17:29:39,677 INFO     ___FILE_ONLY___ You are creating an app for project [citric-aleph-461515-j9].
+
+2025-06-22 17:29:39,677 WARNING  root            Creating an App Engine application for a project is irreversible and the region
+cannot be changed. More information about regions is at
+<https://cloud.google.com/appengine/docs/locations>.
+
+2025-06-22 17:29:39,678 WARNING  root            Starting from March, 2025, App Engine sets the automatic scaling maximum instances
+default for standard environment deployments to 20. This change doesn't impact
+existing apps. To override the default, specify the new max_instances value in your
+app.yaml file, and deploy a new version or redeploy over an existing version.
+For more details on max_instances, see
+<https://cloud.google.com/appengine/docs/standard/reference/app-yaml.md#scaling_elements>.
+
+2025-06-22 17:29:44,440 INFO     ___FILE_ONLY___ Enabling service [appengine.googleapis.com] on project [365268015602]...
+
+2025-06-22 17:29:48,040 INFO     ___FILE_ONLY___ Operation "operations/acat.p2-365268015602-194ecec9-02ce-4b06-aae2-35e1e62a5a2b" finished successfully.
+
+2025-06-22 17:29:48,040 DEBUG    root            Request returned no response, retrying
+2025-06-22 17:29:48,042 DEBUG    root            Retrying request to url https://appengine.googleapis.com/v1/apps?alt=json after exception Retry
+2025-06-22 17:29:50,560 DEBUG    root            (gcloud.app.create) INVALID_ARGUMENT: Invalid location
+Traceback (most recent call last):
+  File "/usr/bin/../lib/google-cloud-sdk/lib/googlecloudsdk/calliope/cli.py", line 981, in Execute
+    resources = calliope_command.Run(cli=self, args=args)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/bin/../lib/google-cloud-sdk/lib/googlecloudsdk/calliope/backend.py", line 934, in Run
+    resources = command_instance.Run(args)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/bin/../lib/google-cloud-sdk/lib/surface/app/create.py", line 67, in Run
+    create_util.CreateApp(
+  File "/usr/bin/../lib/google-cloud-sdk/lib/googlecloudsdk/command_lib/app/create_util.py", line 159, in CreateApp
+    api_client.CreateApp(
+  File "/usr/bin/../lib/google-cloud-sdk/lib/googlecloudsdk/api_lib/app/appengine_api_client.py", line 166, in CreateApp
+    operation = self.client.apps.Create(create_request)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/bin/../lib/google-cloud-sdk/lib/googlecloudsdk/generated_clients/apis/appengine/v1/appengine_v1_client.py", line 1191, in Create
+    return self._RunMethod(
+           ^^^^^^^^^^^^^^^^
+  File "/usr/bin/../lib/google-cloud-sdk/lib/third_party/apitools/base/py/base_api.py", line 747, in _RunMethod
+    return self.ProcessHttpResponse(method_config, http_response, request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/bin/../lib/google-cloud-sdk/lib/third_party/apitools/base/py/base_api.py", line 753, in ProcessHttpResponse
+    self.__ProcessHttpResponse(method_config, http_response, request))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/bin/../lib/google-cloud-sdk/lib/third_party/apitools/base/py/base_api.py", line 612, in __ProcessHttpResponse
+    raise exceptions.HttpError.FromResponse(
+apitools.base.py.exceptions.HttpBadRequestError: HttpError accessing <https://appengine.googleapis.com/v1/apps?alt=json>: response: <{'vary': 'Origin, X-Origin, Referer', 'content-type': 'application/json; charset=UTF-8', 'date': 'Sun, 22 Jun 2025 17:29:50 GMT', 'server': 'ESF', 'x-xss-protection': '0', 'x-frame-options': 'SAMEORIGIN', 'x-content-type-options': 'nosniff', 'transfer-encoding': 'chunked', 'status': '400', 'content-length': '106', '-content-encoding': 'gzip'}>, content <{
+  "error": {
+    "code": 400,
+    "message": "Invalid location",
+    "status": "INVALID_ARGUMENT"
+  }
+}
+>
+2025-06-22 17:29:50,795 ERROR    root            (gcloud.app.create) INVALID_ARGUMENT: Invalid location

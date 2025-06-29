@@ -1,0 +1,13 @@
+project: citric_aleph_461515_j9
+# By default, the registry is a file (but can be turned into a more scalable SQL_backed registry)
+registry: gs://mlops-course-citric-aleph-461515-j9-unique/iris_feature_repo/registry.db
+# The provider primarily specifies default offline / online stores & storing the registry in a given cloud
+provider: gcp
+online_store:
+    type: datastore
+offline_store:
+    type: bigquery
+entity_key_serialization_version: 2
+# By default, no_auth for authentication and authorization, other possible values kubernetes and oidc. Refer the documentation for more details.
+auth:
+    type: no_auth

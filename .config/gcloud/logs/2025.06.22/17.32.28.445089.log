@@ -1,0 +1,40 @@
+2025-06-22 17:32:28,446 DEBUG    root            Loaded Command Group: ['gcloud', 'firestore']
+2025-06-22 17:32:28,448 DEBUG    root            Loaded Command Group: ['gcloud', 'firestore', 'databases']
+2025-06-22 17:32:28,451 DEBUG    root            Loaded Command Group: ['gcloud', 'firestore', 'databases', 'create']
+2025-06-22 17:32:28,460 DEBUG    root            Running [gcloud.firestore.databases.create] with arguments: [--location: "us-central"]
+2025-06-22 17:32:28,738 DEBUG    urllib3.connectionpool Starting new HTTPS connection (1): firestore.googleapis.com:443
+2025-06-22 17:32:29,021 DEBUG    urllib3.connectionpool https://firestore.googleapis.com:443 "POST /v1/projects/citric-aleph-461515-j9/databases?alt=json&databaseId=%28default%29 HTTP/11" 403 None
+2025-06-22 17:32:29,030 DEBUG    root            (gcloud.firestore.databases.create) [365268015602-compute@developer.gserviceaccount.com] does not have permission to access projects instance [citric-aleph-461515-j9] (or it may not exist): The caller does not have permission. This command is authenticated as 365268015602-compute@developer.gserviceaccount.com which is the active account specified by the [core/account] property
+Traceback (most recent call last):
+  File "/usr/bin/../lib/google-cloud-sdk/lib/googlecloudsdk/calliope/cli.py", line 981, in Execute
+    resources = calliope_command.Run(cli=self, args=args)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/bin/../lib/google-cloud-sdk/lib/googlecloudsdk/calliope/backend.py", line 934, in Run
+    resources = command_instance.Run(args)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/bin/../lib/google-cloud-sdk/lib/surface/firestore/databases/create.py", line 111, in Run
+    return databases.CreateDatabase(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/bin/../lib/google-cloud-sdk/lib/googlecloudsdk/api_lib/firestore/databases.py", line 70, in CreateDatabase
+    return _GetDatabaseService().Create(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/bin/../lib/google-cloud-sdk/lib/googlecloudsdk/generated_clients/apis/firestore/v1/firestore_v1_client.py", line 1051, in Create
+    return self._RunMethod(
+           ^^^^^^^^^^^^^^^^
+  File "/usr/bin/../lib/google-cloud-sdk/lib/third_party/apitools/base/py/base_api.py", line 747, in _RunMethod
+    return self.ProcessHttpResponse(method_config, http_response, request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/bin/../lib/google-cloud-sdk/lib/third_party/apitools/base/py/base_api.py", line 753, in ProcessHttpResponse
+    self.__ProcessHttpResponse(method_config, http_response, request))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/bin/../lib/google-cloud-sdk/lib/third_party/apitools/base/py/base_api.py", line 612, in __ProcessHttpResponse
+    raise exceptions.HttpError.FromResponse(
+apitools.base.py.exceptions.HttpForbiddenError: HttpError accessing <https://firestore.googleapis.com/v1/projects/citric-aleph-461515-j9/databases?alt=json&databaseId=%28default%29>: response: <{'x-debug-tracking-id': '5050672457267690508;o=0', 'vary': 'Origin, X-Origin, Referer', 'content-type': 'application/json; charset=UTF-8', 'content-encoding': 'gzip', 'date': 'Sun, 22 Jun 2025 17:32:29 GMT', 'server': 'ESF', 'x-xss-protection': '0', 'x-frame-options': 'SAMEORIGIN', 'x-content-type-options': 'nosniff', 'transfer-encoding': 'chunked', 'status': 403}>, content <{
+  "error": {
+    "code": 403,
+    "message": "The caller does not have permission",
+    "status": "PERMISSION_DENIED"
+  }
+}
+>
+2025-06-22 17:32:29,098 ERROR    root            (gcloud.firestore.databases.create) [365268015602-compute@developer.gserviceaccount.com] does not have permission to access projects instance [citric-aleph-461515-j9] (or it may not exist): The caller does not have permission. This command is authenticated as 365268015602-compute@developer.gserviceaccount.com which is the active account specified by the [core/account] property

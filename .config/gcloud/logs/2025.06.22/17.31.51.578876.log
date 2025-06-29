@@ -1,0 +1,14 @@
+2025-06-22 17:31:51,639 DEBUG    root            Loaded Command Group: ['gcloud', 'firestore']
+2025-06-22 17:31:51,722 DEBUG    root            Loaded Command Group: ['gcloud', 'firestore', 'databases']
+2025-06-22 17:31:51,848 DEBUG    root            Loaded Command Group: ['gcloud', 'firestore', 'databases', 'create']
+2025-06-22 17:31:51,851 DEBUG    root            Loaded Command Group: ['gcloud', 'alpha', 'firestore']
+2025-06-22 17:31:51,853 DEBUG    root            Loaded Command Group: ['gcloud', 'alpha', 'firestore', 'databases']
+2025-06-22 17:31:51,854 DEBUG    root            Loaded Command Group: ['gcloud', 'alpha', 'firestore', 'databases', 'create']
+2025-06-22 17:31:51,856 DEBUG    root            Loaded Command Group: ['gcloud', 'beta', 'firestore']
+2025-06-22 17:31:51,858 DEBUG    root            Loaded Command Group: ['gcloud', 'beta', 'firestore', 'databases']
+2025-06-22 17:31:51,861 DEBUG    root            Loaded Command Group: ['gcloud', 'beta', 'firestore', 'databases', 'create']
+2025-06-22 17:31:51,863 DEBUG    root            No implementation for release track [PREVIEW] for element: [/usr/bin/../lib/google-cloud-sdk/lib/surface/firestore]
+2025-06-22 17:31:51,863 ERROR    root            (gcloud.firestore.databases.create) unrecognized arguments: --region=us-central (did you mean '--location'?) 
+
+To search the help text of gcloud commands, run:
+  gcloud help -- SEARCH_TERMS
