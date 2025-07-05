@@ -1,1 +1,9 @@
 logs.txt
+*.pkl
+mlruns/
+mlflow_tracking/
+*.db
+.mlflow/
+__pycache__/
+.pytest_cache/
+.DS_Store

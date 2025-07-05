@@ -1,6 +1,6 @@
-name: Iris Test Pipeline
+name: Iris MLflow Pipeline
 
-on: [pull_request]
+on: [pull_request, push]
 
 jobs:
   test:
@@ -25,16 +25,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Train model and run tests
+      - name: Setup Google Cloud credentials
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Train model with MLflow and run tests
         run: |
-          # Train model
-          python iris_pipeline.py
+          # Train model with hyperparameter tuning
+          python iris_pipeline_mlflow.py
           
           # Run tests and capture results
-          python -m pytest tests/ > test_results.txt 2>&1 || echo "Tests completed"
+          python -m pytest tests/ -v > test_results.txt 2>&1 || echo "Tests completed"
           
           # Create CML report
-          echo "# 🚀 ML Pipeline Results" > report.md
+          echo "# 🚀 ML Pipeline Results with MLflow" > report.md
           echo "" >> report.md
           echo "## 📊 Test Results" >> report.md
           echo '```' >> report.md
@@ -51,6 +56,15 @@ jobs:
             echo "" >> report.md
             echo "## ❌ Model Training" >> report.md
             echo "- Model training failed or model file not found" >> report.md
+          fi
+          
+          # Check for MLflow artifacts
+          if [ -f "logistic_regression_model.pkl" ] || [ -f "random_forest_model.pkl" ] || [ -f "svm_model.pkl" ]; then
+            echo "" >> report.md
+            echo "## 🧪 MLflow Hyperparameter Tuning" >> report.md
+            echo "- Hyperparameter tuning completed successfully" >> report.md
+            echo "- Multiple models trained and logged to MLflow" >> report.md
+            ls -la *.pkl | while read line; do echo "- $line" >> report.md; done
           fi
           
           # Add training log if available
