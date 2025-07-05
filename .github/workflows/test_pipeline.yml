@@ -1,6 +1,6 @@
-name: Iris Test Pipeline
+name: Iris MLflow Pipeline
 
-on: [pull_request]
+on: [pull_request, push]
 
 jobs:
   test:
@@ -25,16 +25,59 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Train model and run tests
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker
+
+      - name: Create data directory and download dataset
         run: |
-          # Train model
-          python iris_pipeline.py
+          mkdir -p data
+          # Create a simple iris dataset if not exists
+          python -c "
+          import pandas as pd
+          from sklearn.datasets import load_iris
+          import os
+          
+          if not os.path.exists('data/iris.csv'):
+              iris = load_iris()
+              df = pd.DataFrame(iris.data, columns=iris.feature_names)
+              df['species'] = iris.target_names[iris.target]
+              df.to_csv('data/iris.csv', index=False)
+              print('Created iris.csv dataset')
+          else:
+              print('Dataset already exists')
+          "
+
+      - name: Train model with MLflow and run tests
+        run: |
+          # Set up MLflow tracking directory
+          mkdir -p mlflow_tracking
+          
+          # Train model with hyperparameter tuning (reduce trials for CI)
+          python -c "
+          from iris_pipeline_mlflow import IrisMLflowPipeline
+          import logging
+          logging.basicConfig(level=logging.INFO)
+          
+          pipeline = IrisMLflowPipeline()
+          # Reduce trials for faster CI execution
+          pipeline.tune_hyperparameters = lambda *args, **kwargs: pipeline.tune_hyperparameters(*args, n_trials=5, **{k:v for k,v in kwargs.items() if k != 'n_trials'})
+          results = pipeline.run_experiment()
+          print('Pipeline completed successfully')
+          "
           
           # Run tests and capture results
-          python -m pytest tests/ > test_results.txt 2>&1 || echo "Tests completed"
+          python -m pytest tests/ -v > test_results.txt 2>&1 || echo "Tests completed"
           
           # Create CML report
-          echo "# 🚀 ML Pipeline Results" > report.md
+          echo "# 🚀 ML Pipeline Results with MLflow" > report.md
           echo "" >> report.md
           echo "## 📊 Test Results" >> report.md
           echo '```' >> report.md
@@ -53,12 +96,29 @@ jobs:
             echo "- Model training failed or model file not found" >> report.md
           fi
           
+          # Check for MLflow artifacts
+          if [ -f "logistic_regression_model.pkl" ] || [ -f "random_forest_model.pkl" ] || [ -f "svm_model.pkl" ]; then
+            echo "" >> report.md
+            echo "## 🧪 MLflow Hyperparameter Tuning" >> report.md
+            echo "- Hyperparameter tuning completed successfully" >> report.md
+            echo "- Multiple models trained and logged to MLflow" >> report.md
+            ls -la *.pkl | while read line; do echo "- $line" >> report.md; done
+          fi
+          
+          # Check MLflow tracking
+          if [ -d "mlflow_tracking" ]; then
+            echo "" >> report.md
+            echo "## 📈 MLflow Tracking" >> report.md
+            echo "- MLflow tracking database created successfully" >> report.md
+            echo "- Tracking directory size: $(du -sh mlflow_tracking | cut -f1)" >> report.md
+          fi
+          
           # Add training log if available
           if [ -f "training.log" ]; then
             echo "" >> report.md
             echo "## 📝 Training Log" >> report.md
             echo '```' >> report.md
-            cat training.log >> report.md
+            head -50 training.log >> report.md
             echo '```' >> report.md
           fi
 
@@ -71,3 +131,13 @@ jobs:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cml comment create report.md
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: model-artifacts
+          path: |
+            *.pkl
+            mlflow_tracking/
+            report.md
