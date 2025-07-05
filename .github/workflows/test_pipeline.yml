@@ -5,55 +5,64 @@ on: [pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
-    container: 
-      image: ubuntu:22.04  # Use newer Ubuntu that doesn't have this issue
-      options: --user root
 
     steps:
-      - name: Install basic dependencies
-        run: |
-          apt-get update
-          apt-get install -y git python3 python3-pip curl wget nodejs npm
-          
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        run: |
-          python3 -m pip install --upgrade pip
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Python dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Train model and generate report
-        env:
-          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Train model and run tests
         run: |
           # Train model
-          python3 iris_pipeline.py
+          python iris_pipeline.py
           
           # Run tests and capture results
-          python3 -m pytest tests/ > test_results.txt || true
+          python -m pytest tests/ > test_results.txt 2>&1 || echo "Tests completed"
           
           # Create CML report
-          echo "# ML Pipeline Results" > report.md
+          echo "# 🚀 ML Pipeline Results" > report.md
           echo "" >> report.md
-          echo "## Test Results" >> report.md
+          echo "## 📊 Test Results" >> report.md
           echo '```' >> report.md
           cat test_results.txt >> report.md
           echo '```' >> report.md
           
-          # If you have model metrics, add them
-          if [ -f "metrics.json" ]; then
+          # Check if model was created
+          if [ -f "model.pkl" ]; then
             echo "" >> report.md
-            echo "## Model Metrics" >> report.md
-            echo '```json' >> report.md
-            cat metrics.json >> report.md
+            echo "## ✅ Model Training" >> report.md
+            echo "- Model successfully trained and saved as \`model.pkl\`" >> report.md
+            echo "- Model size: $(ls -lh model.pkl | awk '{print $5}')" >> report.md
+          else
+            echo "" >> report.md
+            echo "## ❌ Model Training" >> report.md
+            echo "- Model training failed or model file not found" >> report.md
+          fi
+          
+          # Add training log if available
+          if [ -f "training.log" ]; then
+            echo "" >> report.md
+            echo "## 📝 Training Log" >> report.md
+            echo '```' >> report.md
+            cat training.log >> report.md
             echo '```' >> report.md
           fi
 
-      - name: Setup CML
+      - name: Install CML
         run: |
           npm install -g @dvcorg/cml
 
@@ -62,4 +71,3 @@ jobs:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cml comment create report.md
-
