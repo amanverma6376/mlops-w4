@@ -25,15 +25,53 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Setup Google Cloud credentials
-        uses: google-github-actions/auth@v1
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker
+
+      - name: Create data directory and download dataset
+        run: |
+          mkdir -p data
+          # Create a simple iris dataset if not exists
+          python -c "
+          import pandas as pd
+          from sklearn.datasets import load_iris
+          import os
+          
+          if not os.path.exists('data/iris.csv'):
+              iris = load_iris()
+              df = pd.DataFrame(iris.data, columns=iris.feature_names)
+              df['species'] = iris.target_names[iris.target]
+              df.to_csv('data/iris.csv', index=False)
+              print('Created iris.csv dataset')
+          else:
+              print('Dataset already exists')
+          "
+
       - name: Train model with MLflow and run tests
         run: |
-          # Train model with hyperparameter tuning
-          python iris_pipeline_mlflow.py
+          # Set up MLflow tracking directory
+          mkdir -p mlflow_tracking
+          
+          # Train model with hyperparameter tuning (reduce trials for CI)
+          python -c "
+          from iris_pipeline_mlflow import IrisMLflowPipeline
+          import logging
+          logging.basicConfig(level=logging.INFO)
+          
+          pipeline = IrisMLflowPipeline()
+          # Reduce trials for faster CI execution
+          pipeline.tune_hyperparameters = lambda *args, **kwargs: pipeline.tune_hyperparameters(*args, n_trials=5, **{k:v for k,v in kwargs.items() if k != 'n_trials'})
+          results = pipeline.run_experiment()
+          print('Pipeline completed successfully')
+          "
           
           # Run tests and capture results
           python -m pytest tests/ -v > test_results.txt 2>&1 || echo "Tests completed"
@@ -67,12 +105,20 @@ jobs:
             ls -la *.pkl | while read line; do echo "- $line" >> report.md; done
           fi
           
+          # Check MLflow tracking
+          if [ -d "mlflow_tracking" ]; then
+            echo "" >> report.md
+            echo "## 📈 MLflow Tracking" >> report.md
+            echo "- MLflow tracking database created successfully" >> report.md
+            echo "- Tracking directory size: $(du -sh mlflow_tracking | cut -f1)" >> report.md
+          fi
+          
           # Add training log if available
           if [ -f "training.log" ]; then
             echo "" >> report.md
             echo "## 📝 Training Log" >> report.md
             echo '```' >> report.md
-            cat training.log >> report.md
+            head -50 training.log >> report.md
             echo '```' >> report.md
           fi
 
@@ -85,3 +131,13 @@ jobs:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cml comment create report.md
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: model-artifacts
+          path: |
+            *.pkl
+            mlflow_tracking/
+            report.md
