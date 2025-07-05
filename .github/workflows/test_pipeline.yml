@@ -5,32 +5,60 @@ on: [pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    container: 
+      image: ubuntu:22.04  # Use newer Ubuntu that doesn't have this issue
+      options: --user root
 
     steps:
+      - name: Install basic dependencies
+        run: |
+          apt-get update
+          apt-get install -y git python3 python3-pip curl wget nodejs npm
+          
       - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
+        run: |
+          python3 -m pip install --upgrade pip
 
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
 
-      - name: Train model
-        run: |
-          python iris_pipeline.py
-
-      - name: Run tests and save output
-        run: |
-          pytest tests/ > result.txt || true
-
-      - name: Comment test results
-        uses: iterative/cml@v0.10.0
+      - name: Train model and generate report
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          run: |
-            cml comment < result.txt
+        run: |
+          # Train model
+          python3 iris_pipeline.py
+          
+          # Run tests and capture results
+          python3 -m pytest tests/ > test_results.txt || true
+          
+          # Create CML report
+          echo "# ML Pipeline Results" > report.md
+          echo "" >> report.md
+          echo "## Test Results" >> report.md
+          echo '```' >> report.md
+          cat test_results.txt >> report.md
+          echo '```' >> report.md
+          
+          # If you have model metrics, add them
+          if [ -f "metrics.json" ]; then
+            echo "" >> report.md
+            echo "## Model Metrics" >> report.md
+            echo '```json' >> report.md
+            cat metrics.json >> report.md
+            echo '```' >> report.md
+          fi
+
+      - name: Setup CML
+        run: |
+          npm install -g @dvcorg/cml
+
+      - name: Create CML comment
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cml comment create report.md
