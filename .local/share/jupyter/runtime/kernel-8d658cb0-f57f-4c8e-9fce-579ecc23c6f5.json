@@ -1,0 +1,12 @@
+{
+  "shell_port": 44473,
+  "iopub_port": 35165,
+  "stdin_port": 42471,
+  "control_port": 36655,
+  "hb_port": 52815,
+  "ip": "127.0.0.1",
+  "key": "12db279a-9d5c3db9c67d5792385ad58a",
+  "transport": "tcp",
+  "signature_scheme": "hmac-sha256",
+  "kernel_name": "conda-base-py"
+}

@@ -68,3 +68,6 @@ grpcio>=1.50.0
 packaging>=21.0
 setuptools>=65.0.0
 wheel>=0.37.0
+
+mlflow>=3.1.1
+optuna>=4.4.0
