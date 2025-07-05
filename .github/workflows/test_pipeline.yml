@@ -13,7 +13,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.10
+          python-version: "3.10"
 
       - name: Install dependencies
         run: |
@@ -31,5 +31,6 @@ jobs:
         uses: iterative/cml@v0.10.0
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: |
-          cml comment < result.txt
+        with:
+          run: |
+            cml comment < result.txt
