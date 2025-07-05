@@ -31,5 +31,5 @@ jobs:
         uses: iterative/cml@v0.10.0
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+      - run: |
           cml comment < result.txt
