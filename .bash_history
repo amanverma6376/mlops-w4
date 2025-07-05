@@ -80,3 +80,46 @@ feast materialize 2023-01-01T00:00:00 2023-12-31T00:00:00
 feast apply
 feast materialize 2025-01-01T00:00:00 2025-12-31T00:00:00
 feast apply
+git init
+git status
+git log
+git config user.name "Aman Verma"
+git config user.email "21f1006376@ds.study.iitm.ac.in"
+git remote remove origin
+git remote add origin "https://github.com/amanverma6376/mlops-w4.git"
+git checkout -b dev
+jupyter nbconvert --to script SDK_Custom_Container_Prediction.ipynb
+mv SDK_Custom_Container_Prediction.py iris_pipeline.py
+python iris_pipeline.py
+pip install get_ipython
+python iris_pipeline.py
+pip install pytest
+pytest tests/
+pytest tests/
+pip freeze >> requirements.txt
+git add iris_pipeline.py requirements.txt tests/ .github/ data/iris.csv
+git add iris_pipeline.py requirements.txt tests/  data/iris.csv
+git commit -m "Updated pipeline"
+git push
+ git push --set-upstream origin dev
+ git push --set-upstream origin dev
+gcloud source repos create iris-mlops-w4
+git init
+gcloud services enable repos
+gcloud services enable sourcerepo.googleapis.com --project=citric-aleph-461515-j9
+gcloud source repos iris-mlops-w4
+gcloud source repos create  iris-mlops-w4
+git config user.email "amanvermagcloud@gmail.com"
+gcloud source repos create  iris-mlops-w4
+gcloud source repos create  iris-mlops-w4
+cd ""
+git status
+git push
+gcloud source repos create iris-mlops-w4
+gcloud auth login
+gcloud source repos create iris-mlops-w4
+git pull
+rm -rf iris_feature_repo-Copy1
+rm -rf data-Copy1
+rm -rf artifacts-Copy1
+git pull
