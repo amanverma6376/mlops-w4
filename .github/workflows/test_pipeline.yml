@@ -28,9 +28,9 @@ jobs:
           pytest tests/ > result.txt || true
 
       - name: Comment test results
-        uses: iterative/cml@v0.10.0
+        uses: iterative/cml@v0.20.0  # Updated to newer version
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           run: |
-            cml comment < result.txt
+            cml comment create --publish result.txt
