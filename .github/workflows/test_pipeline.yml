@@ -184,8 +184,23 @@ jobs:
           # Check if cluster exists, create if not
           echo "Checking for existing cluster..."
           
-          # Find cluster in any zone (get only the first one if multiple exist)
-          EXISTING_CLUSTER_ZONE=$(gcloud container clusters list --filter="name=iris-k8s-cluster" --format="value(zone)" --project=citric-aleph-461515-j9 --limit=1)
+          # Check for multiple clusters with same name and clean up
+          ALL_CLUSTER_ZONES=$(gcloud container clusters list --filter="name=iris-k8s-cluster" --format="value(zone)" --project=citric-aleph-461515-j9)
+          CLUSTER_COUNT=$(echo "$ALL_CLUSTER_ZONES" | wc -w)
+          
+          if [ "$CLUSTER_COUNT" -gt 1 ]; then
+            echo "⚠️ Found multiple clusters with same name, cleaning up..."
+            for zone in $ALL_CLUSTER_ZONES; do
+              echo "Deleting cluster in zone: $zone"
+              gcloud container clusters delete iris-k8s-cluster --zone=$zone --project=citric-aleph-461515-j9 --quiet --async || echo "Failed to delete cluster in $zone"
+            done
+            echo "Waiting for all deletions to complete..."
+            sleep 60
+            EXISTING_CLUSTER_ZONE=""
+          else
+            # Find cluster in any zone (get only the first one if multiple exist)
+            EXISTING_CLUSTER_ZONE=$(gcloud container clusters list --filter="name=iris-k8s-cluster" --format="value(zone)" --project=citric-aleph-461515-j9 --limit=1)
+          fi
           
           if [ ! -z "$EXISTING_CLUSTER_ZONE" ]; then
             echo "✅ Cluster iris-k8s-cluster already exists in zone: $EXISTING_CLUSTER_ZONE"
@@ -251,17 +266,25 @@ jobs:
             elif [ "$CLUSTER_STATUS" = "RECONCILING" ] || [ "$CLUSTER_STATUS" = "STOPPING" ] || [ "$CLUSTER_STATUS" = "PROVISIONING" ]; then
               echo "⏳ Cluster is being updated ($CLUSTER_STATUS), waiting for completion..."
               
-                              # Wait for cluster to reach stable state (max 15 minutes)
-                for i in {1..90}; do
-                  CURRENT_STATUS=$(gcloud container clusters describe iris-k8s-cluster --zone $EXISTING_CLUSTER_ZONE --project citric-aleph-461515-j9 --format="value(status)")
-                  echo "Current status: $CURRENT_STATUS ($i/90)"
+              # Wait for cluster to reach stable state (max 15 minutes)
+              for i in {1..90}; do
+                # Check if cluster still exists before describing it
+                if ! gcloud container clusters describe iris-k8s-cluster --zone $EXISTING_CLUSTER_ZONE --project citric-aleph-461515-j9 >/dev/null 2>&1; then
+                  echo "🗑️ Cluster was deleted during wait, will create a new one"
+                  EXISTING_CLUSTER_ZONE=""
+                  break
+                fi
+                
+                CURRENT_STATUS=$(gcloud container clusters describe iris-k8s-cluster --zone $EXISTING_CLUSTER_ZONE --project citric-aleph-461515-j9 --format="value(status)" 2>/dev/null || echo "DELETED")
+                echo "Current status: $CURRENT_STATUS ($i/90)"
                 
                 if [ "$CURRENT_STATUS" = "RUNNING" ]; then
                   echo "✅ Cluster is now RUNNING"
                   break
-                elif [ "$CURRENT_STATUS" = "ERROR" ]; then
-                  echo "❌ Cluster went to ERROR state during wait"
-                  exit 1
+                elif [ "$CURRENT_STATUS" = "ERROR" ] || [ "$CURRENT_STATUS" = "DELETED" ]; then
+                  echo "❌ Cluster went to $CURRENT_STATUS state, will create a new one"
+                  EXISTING_CLUSTER_ZONE=""
+                  break
                 fi
                 
                 sleep 10
@@ -275,7 +298,10 @@ jobs:
             else
               echo "✅ Cluster is already RUNNING"
             fi
-          else
+          fi
+          
+          # If no existing cluster or it was deleted, create a new one
+          if [ -z "$EXISTING_CLUSTER_ZONE" ]; then
             echo "Creating new GKE cluster with minimal resources..."
             
             # Try multiple zones to avoid quota issues
