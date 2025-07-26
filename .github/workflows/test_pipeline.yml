@@ -229,11 +229,11 @@ jobs:
           for zone in "${ZONES[@]}"; do
             echo "Attempting to create cluster $CLUSTER_NAME in zone: $zone"
             
-            # Ultra-minimal configuration for trial accounts
+            # Minimal configuration with e2-small for sufficient memory
             if gcloud container clusters create $CLUSTER_NAME \
               --zone=$zone \
               --num-nodes=1 \
-              --machine-type=e2-micro \
+              --machine-type=e2-small \
               --disk-size=30GB \
               --disk-type=pd-standard \
               --no-enable-autoscaling \
