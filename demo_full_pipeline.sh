@@ -291,7 +291,7 @@ main() {
     
     echo ""
     echo -e "${CYAN}================================================================${NC}"
-    echo -e "${GREEN}🎯 MLOps Assignment Demonstration Complete!${NC}"
+    echo -e "${GREEN}🎯 MLOps Assignment Complete!${NC}"
     echo -e "${CYAN}================================================================${NC}"
 }
 
