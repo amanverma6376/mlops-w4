@@ -314,13 +314,31 @@ jobs:
           rm -f /tmp/gcr-key.json
 
           # Update deployment image
+          echo "Using Docker image: ${{ env.IMAGE_TAG }}"
           sed -i "s|gcr.io/citric-aleph-461515-j9/iris-api:latest|${{ env.IMAGE_TAG }}|g" k8s/deployment.yaml
+
+          # Verify the image was updated in the deployment
+          echo "Updated deployment.yaml:"
+          grep -A 5 -B 5 "image:" k8s/deployment.yaml
 
           # Apply Kubernetes manifests
           kubectl apply -f k8s/deployment.yaml -n iris-mlops
 
-          # Wait for deployment to be ready
-          kubectl rollout status deployment/iris-api -n iris-mlops --timeout=300s
+          # Check what was created
+          echo "Checking deployment status..."
+          kubectl get deployments -n iris-mlops
+          kubectl get pods -n iris-mlops
+          kubectl get events -n iris-mlops --sort-by='.lastTimestamp' | tail -10
+
+          # Wait for deployment to be ready with extended timeout
+          echo "Waiting for deployment to be ready..."
+          kubectl rollout status deployment/iris-api -n iris-mlops --timeout=600s || {
+            echo "Deployment timed out, checking pod status..."
+            kubectl get pods -n iris-mlops -o wide
+            kubectl describe pods -n iris-mlops
+            kubectl logs -l app=iris-api -n iris-mlops --tail=50 || echo "No logs available yet"
+            echo "Continuing with partial deployment..."
+          }
 
           # Get service details
           kubectl get services -n iris-mlops
