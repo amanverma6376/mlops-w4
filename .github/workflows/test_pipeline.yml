@@ -335,6 +335,26 @@ jobs:
           echo "Updated deployment.yaml:"
           grep -A 5 -B 5 "image:" k8s/deployment.yaml
 
+          # Pre-pull the image to speed up deployment
+          echo "Pre-pulling Docker image to cluster nodes..."
+          kubectl create job image-puller --image=${{ env.IMAGE_TAG }} -n iris-mlops --dry-run=client -o yaml > /tmp/image-puller.yaml
+          echo "
+          spec:
+            template:
+              spec:
+                containers:
+                - name: image-puller
+                  image: ${{ env.IMAGE_TAG }}
+                  command: ['echo', 'Image pulled successfully']
+                restartPolicy: Never
+                imagePullSecrets:
+                - name: gcr-json-key
+          " >> /tmp/image-puller.yaml
+          
+          kubectl apply -f /tmp/image-puller.yaml
+          kubectl wait --for=condition=complete job/image-puller -n iris-mlops --timeout=300s || echo "Image pre-pull failed, continuing anyway"
+          kubectl delete job image-puller -n iris-mlops || echo "Failed to cleanup pre-pull job"
+
           # Apply Kubernetes manifests
           kubectl apply -f k8s/deployment.yaml -n iris-mlops
 
@@ -346,11 +366,23 @@ jobs:
 
           # Wait for deployment to be ready with extended timeout
           echo "Waiting for deployment to be ready..."
-          kubectl rollout status deployment/iris-api -n iris-mlops --timeout=600s || {
+          kubectl rollout status deployment/iris-api -n iris-mlops --timeout=900s || {
             echo "Deployment timed out, checking pod status..."
             kubectl get pods -n iris-mlops -o wide
             kubectl describe pods -n iris-mlops
+            
+            # Check for image pull issues
+            echo "Checking for image pull events..."
+            kubectl get events -n iris-mlops --sort-by='.lastTimestamp' | grep -i "pull\|image\|error" || echo "No image pull events found"
+            
+            # Try to get logs
             kubectl logs -l app=iris-api -n iris-mlops --tail=50 || echo "No logs available yet"
+            
+            # Check node resources
+            echo "Checking node resources..."
+            kubectl top nodes || echo "Metrics not available"
+            kubectl describe nodes | grep -A 5 -B 5 "Allocated resources" || echo "Node resource info not available"
+            
             echo "Continuing with partial deployment..."
           }
 

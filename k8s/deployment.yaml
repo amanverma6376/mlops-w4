@@ -32,6 +32,8 @@ spec:
           limits:
             memory: "128Mi"
             cpu: "100m"
+        # Add image pull policy and timeout
+        imagePullPolicy: Always
         livenessProbe:
           httpGet:
             path: /health

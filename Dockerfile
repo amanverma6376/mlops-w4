@@ -10,17 +10,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Create app directory
 WORKDIR /app
 
-# Install system dependencies
+# Install minimal system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
-    g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Copy minimal requirements for API only
+COPY requirements-api.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install minimal Python dependencies
+RUN pip install --no-cache-dir -r requirements-api.txt
 
 # Copy application code
 COPY iris_api.py .
