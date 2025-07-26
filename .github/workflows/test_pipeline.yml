@@ -199,13 +199,18 @@ jobs:
               --zone=$zone \
               --num-nodes=1 \
               --machine-type=e2-micro \
-              --disk-size=10GB \
+              --disk-size=20GB \
+              --disk-type=pd-standard \
               --enable-autoscaling \
               --min-nodes=1 \
               --max-nodes=2 \
               --enable-autorepair \
               --enable-autoupgrade \
-              --addons=HorizontalPodAutoscaling,HttpLoadBalancing \
+              --no-enable-cloud-logging \
+              --no-enable-cloud-monitoring \
+              --addons=HorizontalPodAutoscaling \
+              --enable-network-policy=false \
+              --enable-ip-alias \
               --project=citric-aleph-461515-j9 \
               --quiet 2>/dev/null; then
               
