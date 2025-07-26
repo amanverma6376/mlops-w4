@@ -188,8 +188,8 @@ jobs:
           # Create new GKE cluster with unique name and minimal resources
           echo "Creating new GKE cluster with minimal resources..."
           
-          # Try multiple zones to avoid quota issues
-          ZONES=("us-west1-a" "us-east1-b" "us-central1-c")
+          # Try multiple zones in us-central1 region to avoid quota issues
+          ZONES=("us-central1-a" "us-central1-b" "us-central1-c")
           CLUSTER_CREATED=false
           
           for zone in "${ZONES[@]}"; do
