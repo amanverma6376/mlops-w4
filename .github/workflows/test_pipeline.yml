@@ -173,6 +173,10 @@ jobs:
           # Set project
           gcloud config set project citric-aleph-461515-j9
           
+          # Install gke-gcloud-auth-plugin for kubectl authentication
+          echo "Installing gke-gcloud-auth-plugin..."
+          gcloud components install gke-gcloud-auth-plugin --quiet
+          
           # Enable required APIs
           gcloud services enable container.googleapis.com --quiet
           gcloud services enable containerregistry.googleapis.com --quiet
@@ -181,6 +185,17 @@ jobs:
           echo "Checking for existing cluster..."
           if gcloud container clusters describe iris-k8s-cluster --zone us-central1-a --project citric-aleph-461515-j9 >/dev/null 2>&1; then
             echo "✅ Cluster iris-k8s-cluster already exists"
+            
+            # Check cluster status and start if not running
+            CLUSTER_STATUS=$(gcloud container clusters describe iris-k8s-cluster --zone us-central1-a --project citric-aleph-461515-j9 --format="value(status)")
+            echo "Cluster status: $CLUSTER_STATUS"
+            
+            if [ "$CLUSTER_STATUS" != "RUNNING" ]; then
+              echo "Starting cluster..."
+              gcloud container clusters resize iris-k8s-cluster --zone us-central1-a --num-nodes 3 --project citric-aleph-461515-j9 --quiet
+              echo "Waiting for cluster to be ready..."
+              sleep 60
+            fi
           else
             echo "Creating GKE cluster iris-k8s-cluster..."
             gcloud container clusters create iris-k8s-cluster \
@@ -199,11 +214,29 @@ jobs:
             echo "✅ Cluster created successfully"
           fi
           
-          # Get cluster credentials
+          # Get cluster credentials with auth plugin
+          echo "Getting cluster credentials..."
           gcloud container clusters get-credentials iris-k8s-cluster --zone us-central1-a --project citric-aleph-461515-j9
           
-          # Verify kubectl connection
-          kubectl cluster-info
+          # Set up kubectl authentication
+          export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+          
+          # Wait a moment for cluster to be fully ready
+          echo "Waiting for cluster to be fully ready..."
+          sleep 30
+          
+          # Verify kubectl connection with retry
+          echo "Verifying kubectl connection..."
+          for i in {1..5}; do
+            if kubectl cluster-info >/dev/null 2>&1; then
+              echo "✅ kubectl connected successfully"
+              kubectl cluster-info
+              break
+            else
+              echo "Attempt $i: kubectl connection failed, retrying in 15 seconds..."
+              sleep 15
+            fi
+          done
 
       - name: Deploy to Kubernetes
         run: |
