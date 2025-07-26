@@ -18,7 +18,7 @@ echo "==================================="
 # Check if model exists, if not train it
 if [ ! -f "model.pkl" ]; then
     echo "📊 Training model (model.pkl not found)..."
-    python iris_pipeline.py
+    python3 iris_pipeline.py || python iris_pipeline.py
     echo "✅ Model trained successfully!"
 fi
 

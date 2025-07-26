@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# 🎬 Complete MLOps Pipeline Demo Script
-# This script demonstrates the entire Continuous Deployment pipeline for the Iris ML API
-# Perfect for recording a demonstration video
-
 set -e
 
 # Color codes for output
@@ -64,13 +60,13 @@ main() {
     # Step 2: Train the ML model
     print_step "2. TRAINING THE MACHINE LEARNING MODEL"
     echo "Training the Iris classification model..."
-    python iris_pipeline.py
+    $PYTHON_CMD iris_pipeline.py
     print_success "Model trained and saved as model.pkl"
     
     # Step 3: Run tests
     print_step "3. RUNNING UNIT TESTS"
     echo "Executing pytest for data validation and model testing..."
-    python -m pytest tests/ -v || print_warning "Some tests may require MLFlow setup"
+    $PYTHON_CMD -m pytest tests/ -v || print_warning "Some tests may require MLFlow setup"
     print_success "Tests completed"
     
     # Step 4: Test FastAPI locally (brief)
@@ -79,7 +75,7 @@ main() {
     echo "This will run for 10 seconds to show the API works..."
     
     # Start API in background
-    python iris_api.py &
+    $PYTHON_CMD iris_api.py &
     API_PID=$!
     
     # Wait for API to start
@@ -212,8 +208,19 @@ check_prerequisites() {
     command -v gcloud >/dev/null 2>&1 || { print_error "gcloud CLI is required but not installed."; exit 1; }
     command -v kubectl >/dev/null 2>&1 || { print_error "kubectl is required but not installed."; exit 1; }
     command -v docker >/dev/null 2>&1 || { print_error "Docker is required but not installed."; exit 1; }
-    command -v python >/dev/null 2>&1 || { print_error "Python is required but not installed."; exit 1; }
+    
+    # Check for Python (try python3 first, then python)
+    if command -v python3 >/dev/null 2>&1; then
+        export PYTHON_CMD="python3"
+    elif command -v python >/dev/null 2>&1; then
+        export PYTHON_CMD="python"
+    else
+        print_error "Python is required but not installed (tried python3 and python)."
+        exit 1
+    fi
+    
     print_success "All prerequisites are available"
+    echo "Using Python: $PYTHON_CMD"
 }
 
 # Make scripts executable
