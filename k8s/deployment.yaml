@@ -6,7 +6,7 @@ metadata:
     app: iris-api
     version: v1.0.0
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: iris-api
@@ -27,11 +27,11 @@ spec:
           value: "1"
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "250m"
+            memory: "128Mi"
+            cpu: "100m"
           limits:
-            memory: "512Mi"
-            cpu: "500m"
+            memory: "256Mi"
+            cpu: "200m"
         livenessProbe:
           httpGet:
             path: /health
@@ -84,8 +84,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: iris-api
-  minReplicas: 2
-  maxReplicas: 10
+  minReplicas: 1
+  maxReplicas: 2
   metrics:
   - type: Resource
     resource:

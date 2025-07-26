@@ -183,52 +183,78 @@ jobs:
           
           # Check if cluster exists, create if not
           echo "Checking for existing cluster..."
-          if gcloud container clusters describe iris-k8s-cluster --zone us-central1-a --project citric-aleph-461515-j9 >/dev/null 2>&1; then
-            echo "✅ Cluster iris-k8s-cluster already exists"
+          
+          # Find cluster in any zone
+          EXISTING_CLUSTER_ZONE=$(gcloud container clusters list --filter="name=iris-k8s-cluster" --format="value(zone)" --project=citric-aleph-461515-j9)
+          
+          if [ ! -z "$EXISTING_CLUSTER_ZONE" ]; then
+            echo "✅ Cluster iris-k8s-cluster already exists in zone: $EXISTING_CLUSTER_ZONE"
             
             # Check cluster status and handle different states
-            CLUSTER_STATUS=$(gcloud container clusters describe iris-k8s-cluster --zone us-central1-a --project citric-aleph-461515-j9 --format="value(status)")
+            CLUSTER_STATUS=$(gcloud container clusters describe iris-k8s-cluster --zone $EXISTING_CLUSTER_ZONE --project citric-aleph-461515-j9 --format="value(status)")
             echo "Cluster status: $CLUSTER_STATUS"
             
-            if [ "$CLUSTER_STATUS" = "ERROR" ]; then
-              echo "⚠️  Cluster is in ERROR state, recreating..."
-              gcloud container clusters delete iris-k8s-cluster --zone us-central1-a --project citric-aleph-461515-j9 --quiet &
-              DELETE_PID=$!
+                          if [ "$CLUSTER_STATUS" = "ERROR" ]; then
+                echo "⚠️  Cluster is in ERROR state, recreating..."
+                gcloud container clusters delete iris-k8s-cluster --zone $EXISTING_CLUSTER_ZONE --project citric-aleph-461515-j9 --quiet &
+                DELETE_PID=$!
+                
+                # Wait for deletion to complete (max 10 minutes)
+                for i in {1..60}; do
+                  if ! gcloud container clusters describe iris-k8s-cluster --zone $EXISTING_CLUSTER_ZONE --project citric-aleph-461515-j9 >/dev/null 2>&1; then
+                    echo "✅ Cluster deleted successfully"
+                    break
+                  fi
+                  echo "Waiting for cluster deletion... ($i/60)"
+                  sleep 10
+                done
               
-              # Wait for deletion to complete (max 10 minutes)
-              for i in {1..60}; do
-                if ! gcloud container clusters describe iris-k8s-cluster --zone us-central1-a --project citric-aleph-461515-j9 >/dev/null 2>&1; then
-                  echo "✅ Cluster deleted successfully"
+              # Create new cluster with resource-efficient settings
+              echo "Creating new GKE cluster with minimal resources..."
+              
+              # Try us-west1-a first (different region for quota)
+              ZONES=("us-west1-a" "us-east1-b" "us-central1-c")
+              CLUSTER_CREATED=false
+              
+              for zone in "${ZONES[@]}"; do
+                echo "Attempting to create cluster in zone: $zone"
+                
+                if gcloud container clusters create iris-k8s-cluster \
+                  --zone=$zone \
+                  --num-nodes=1 \
+                  --machine-type=e2-micro \
+                  --disk-size=10GB \
+                  --enable-autoscaling \
+                  --min-nodes=1 \
+                  --max-nodes=2 \
+                  --enable-autorepair \
+                  --enable-autoupgrade \
+                  --addons=HorizontalPodAutoscaling,HttpLoadBalancing \
+                  --project=citric-aleph-461515-j9 \
+                  --quiet 2>/dev/null; then
+                  
+                  echo "✅ Cluster created successfully in zone: $zone"
+                  CLUSTER_CREATED=true
+                  CLUSTER_ZONE=$zone
                   break
+                else
+                  echo "❌ Failed to create cluster in zone: $zone (likely quota limits)"
                 fi
-                echo "Waiting for cluster deletion... ($i/60)"
-                sleep 10
               done
               
-              # Create new cluster
-              echo "Creating new GKE cluster..."
-              gcloud container clusters create iris-k8s-cluster \
-                --zone=us-central1-a \
-                --num-nodes=3 \
-                --machine-type=e2-medium \
-                --disk-size=20GB \
-                --enable-autoscaling \
-                --min-nodes=1 \
-                --max-nodes=5 \
-                --enable-autorepair \
-                --enable-autoupgrade \
-                --addons=HorizontalPodAutoscaling,HttpLoadBalancing \
-                --project=citric-aleph-461515-j9 \
-                --quiet
-              echo "✅ New cluster created successfully"
+              if [ "$CLUSTER_CREATED" = false ]; then
+                echo "❌ Failed to create cluster in all zones due to quota limits"
+                echo "💡 Please increase your GCP quota or delete unused resources"
+                exit 1
+              fi
               
             elif [ "$CLUSTER_STATUS" = "RECONCILING" ] || [ "$CLUSTER_STATUS" = "STOPPING" ] || [ "$CLUSTER_STATUS" = "PROVISIONING" ]; then
               echo "⏳ Cluster is being updated ($CLUSTER_STATUS), waiting for completion..."
               
-              # Wait for cluster to reach stable state (max 15 minutes)
-              for i in {1..90}; do
-                CURRENT_STATUS=$(gcloud container clusters describe iris-k8s-cluster --zone us-central1-a --project citric-aleph-461515-j9 --format="value(status)")
-                echo "Current status: $CURRENT_STATUS ($i/90)"
+                              # Wait for cluster to reach stable state (max 15 minutes)
+                for i in {1..90}; do
+                  CURRENT_STATUS=$(gcloud container clusters describe iris-k8s-cluster --zone $EXISTING_CLUSTER_ZONE --project citric-aleph-461515-j9 --format="value(status)")
+                  echo "Current status: $CURRENT_STATUS ($i/90)"
                 
                 if [ "$CURRENT_STATUS" = "RUNNING" ]; then
                   echo "✅ Cluster is now RUNNING"
@@ -243,33 +269,64 @@ jobs:
               
             elif [ "$CLUSTER_STATUS" != "RUNNING" ]; then
               echo "🚀 Starting cluster (current status: $CLUSTER_STATUS)..."
-              gcloud container clusters resize iris-k8s-cluster --zone us-central1-a --num-nodes 3 --project citric-aleph-461515-j9 --quiet
+              gcloud container clusters resize iris-k8s-cluster --zone $EXISTING_CLUSTER_ZONE --num-nodes 1 --project citric-aleph-461515-j9 --quiet
               echo "Waiting for cluster to be ready..."
               sleep 60
             else
               echo "✅ Cluster is already RUNNING"
             fi
           else
-            echo "Creating GKE cluster iris-k8s-cluster..."
-            gcloud container clusters create iris-k8s-cluster \
-              --zone=us-central1-a \
-              --num-nodes=3 \
-              --machine-type=e2-medium \
-              --disk-size=20GB \
-              --enable-autoscaling \
-              --min-nodes=1 \
-              --max-nodes=5 \
-              --enable-autorepair \
-              --enable-autoupgrade \
-              --addons=HorizontalPodAutoscaling,HttpLoadBalancing \
-              --project=citric-aleph-461515-j9 \
-              --quiet
-            echo "✅ Cluster created successfully"
+            echo "Creating new GKE cluster with minimal resources..."
+            
+            # Try multiple zones to avoid quota issues
+            ZONES=("us-west1-a" "us-east1-b" "us-central1-c")
+            CLUSTER_CREATED=false
+            
+            for zone in "${ZONES[@]}"; do
+              echo "Attempting to create cluster in zone: $zone"
+              
+              if gcloud container clusters create iris-k8s-cluster \
+                --zone=$zone \
+                --num-nodes=1 \
+                --machine-type=e2-micro \
+                --disk-size=10GB \
+                --enable-autoscaling \
+                --min-nodes=1 \
+                --max-nodes=2 \
+                --enable-autorepair \
+                --enable-autoupgrade \
+                --addons=HorizontalPodAutoscaling,HttpLoadBalancing \
+                --project=citric-aleph-461515-j9 \
+                --quiet 2>/dev/null; then
+                
+                echo "✅ Cluster created successfully in zone: $zone"
+                CLUSTER_CREATED=true
+                CLUSTER_ZONE=$zone
+                break
+              else
+                echo "❌ Failed to create cluster in zone: $zone (likely quota limits)"
+              fi
+            done
+            
+            if [ "$CLUSTER_CREATED" = false ]; then
+              echo "❌ Failed to create cluster in all zones due to quota limits"
+              echo "💡 Please increase your GCP quota or delete unused resources"
+              exit 1
+            fi
           fi
           
           # Get cluster credentials with auth plugin
           echo "Getting cluster credentials..."
-          gcloud container clusters get-credentials iris-k8s-cluster --zone us-central1-a --project citric-aleph-461515-j9
+          
+          # Detect cluster zone automatically
+          CLUSTER_ZONE=$(gcloud container clusters list --filter="name=iris-k8s-cluster" --format="value(zone)" --project=citric-aleph-461515-j9)
+          if [ -z "$CLUSTER_ZONE" ]; then
+            echo "❌ Could not detect cluster zone"
+            exit 1
+          fi
+          
+          echo "Detected cluster zone: $CLUSTER_ZONE"
+          gcloud container clusters get-credentials iris-k8s-cluster --zone $CLUSTER_ZONE --project citric-aleph-461515-j9
           
           # Set up kubectl authentication
           export USE_GKE_GCLOUD_AUTH_PLUGIN=True
