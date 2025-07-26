@@ -86,6 +86,20 @@ jobs:
 
           print('Pipeline completed successfully')
           print(f'Results: {results}')
+
+          # Create a default model.pkl for the API (use the best performing model)
+          import os
+          import shutil
+
+          # Find the best model based on accuracy
+          best_model_type = max(results, key=results.get)
+          best_model_file = f'{best_model_type}_model.pkl'
+
+          if os.path.exists(best_model_file):
+              shutil.copy(best_model_file, 'model.pkl')
+              print(f'Created model.pkl from best model: {best_model_type} (accuracy: {results[best_model_type]:.4f})')
+          else:
+              print(f'Warning: Best model file {best_model_file} not found')
           "
 
           # Run tests and capture results
@@ -373,15 +387,28 @@ jobs:
             sleep 10
           done
 
-          # Test API endpoints
+          # Check pod status before testing API
+          echo "Checking pod status before API testing..."
+          kubectl get pods -n iris-mlops -o wide
+          kubectl describe pods -n iris-mlops | grep -A 10 -B 5 "Conditions:\|Events:"
+
+          # Check if pods are actually ready
+          READY_PODS=$(kubectl get pods -n iris-mlops -o jsonpath='{.items[*].status.conditions[?(@.type=="Ready")].status}')
+          echo "Pod ready status: $READY_PODS"
+
+          # Get pod logs to see what's happening
+          echo "Pod logs:"
+          kubectl logs -l app=iris-api -n iris-mlops --tail=20 || echo "No logs available"
+
+          # Test API endpoints with shorter timeout
           if [ ! -z "$EXTERNAL_IP" ] && [ "$EXTERNAL_IP" != "null" ]; then
-            echo "Testing API endpoints..."
+            echo "Testing API endpoints with 30s timeout..."
             
-            # Test health endpoint
-            curl -f http://$EXTERNAL_IP/health || echo "Health check failed"
+            # Test health endpoint with timeout
+            curl -f --max-time 30 http://$EXTERNAL_IP/health || echo "Health check failed"
             
-            # Test prediction endpoint
-            curl -X POST http://$EXTERNAL_IP/predict \
+            # Test prediction endpoint with timeout
+            curl -X POST --max-time 30 http://$EXTERNAL_IP/predict \
               -H "Content-Type: application/json" \
               -d '{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}' || echo "Prediction test failed"
             
