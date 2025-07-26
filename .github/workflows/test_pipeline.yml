@@ -185,8 +185,19 @@ jobs:
           gcloud services enable container.googleapis.com --quiet
           gcloud services enable containerregistry.googleapis.com --quiet
 
-          # Create new GKE cluster with unique name and minimal resources
-          echo "Creating new GKE cluster with minimal resources..."
+          # Check current quotas and usage
+          echo "Checking current GCP quotas and usage..."
+          gcloud compute project-info describe --project=citric-aleph-461515-j9 --format="table(quotas.metric,quotas.limit,quotas.usage)" | grep -E "(CPUS|IN_USE_ADDRESSES|INSTANCES)" || echo "Could not fetch quota info"
+
+          # List existing resources
+          echo "Existing clusters:"
+          gcloud container clusters list --project=citric-aleph-461515-j9 || echo "No existing clusters"
+
+          echo "Existing compute instances:"
+          gcloud compute instances list --project=citric-aleph-461515-j9 || echo "No existing instances"
+
+          # Create new GKE cluster with ultra-minimal resources for trial account
+          echo "Creating new GKE cluster with ultra-minimal resources..."
 
           # Try multiple zones in us-central1 region to avoid quota issues
           ZONES=("us-central1-a" "us-central1-b" "us-central1-c")
@@ -195,25 +206,24 @@ jobs:
           for zone in "${ZONES[@]}"; do
             echo "Attempting to create cluster $CLUSTER_NAME in zone: $zone"
             
+            # Ultra-minimal configuration for trial accounts
             if gcloud container clusters create $CLUSTER_NAME \
               --zone=$zone \
               --num-nodes=1 \
               --machine-type=e2-micro \
-              --disk-size=100GB \
-              --boot-disk-size=100GB \
+              --disk-size=30GB \
               --disk-type=pd-standard \
-              --enable-autoscaling \
-              --min-nodes=1 \
-              --max-nodes=2 \
-              --enable-autorepair \
-              --enable-autoupgrade \
+              --no-enable-autoscaling \
+              --no-enable-autorepair \
+              --no-enable-autoupgrade \
               --no-enable-cloud-logging \
               --no-enable-cloud-monitoring \
-              --addons=HorizontalPodAutoscaling \
+              --no-addons \
               --enable-network-policy=false \
-              --enable-ip-alias \
+              --no-enable-ip-alias \
+              --enable-legacy-authorization \
               --project=citric-aleph-461515-j9 \
-              --quiet 2>/dev/null; then
+              --verbosity=info; then
               
               echo "✅ Cluster created successfully in zone: $zone"
               CLUSTER_CREATED=true
@@ -222,13 +232,36 @@ jobs:
               echo "CLUSTER_ZONE=$CLUSTER_ZONE" >> $GITHUB_ENV
               break
             else
-              echo "❌ Failed to create cluster in zone: $zone (likely quota limits)"
+              echo "❌ Failed to create cluster in zone: $zone"
+              echo "Checking detailed error..."
+              gcloud container clusters create $CLUSTER_NAME \
+                --zone=$zone \
+                --num-nodes=1 \
+                --machine-type=e2-micro \
+                --disk-size=30GB \
+                --disk-type=pd-standard \
+                --no-enable-autoscaling \
+                --project=citric-aleph-461515-j9 \
+                --dry-run 2>&1 | head -10 || echo "Could not get detailed error"
             fi
           done
 
           if [ "$CLUSTER_CREATED" = false ]; then
-            echo "❌ Failed to create cluster in all zones due to quota limits"
-            echo "💡 Please increase your GCP quota or delete unused resources"
+            echo "❌ Failed to create cluster in all zones"
+            echo "💡 Checking what resources are currently in use..."
+            
+            # Check for existing resources that might be using quota
+            echo "=== Current Compute Instances ==="
+            gcloud compute instances list --project=citric-aleph-461515-j9 || echo "No instances found"
+            
+            echo "=== Current GKE Clusters ==="
+            gcloud container clusters list --project=citric-aleph-461515-j9 || echo "No clusters found"
+            
+            echo "=== Current Persistent Disks ==="
+            gcloud compute disks list --project=citric-aleph-461515-j9 || echo "No disks found"
+            
+            echo "💡 Please delete unused resources or request quota increase"
+            echo "💡 You can also try running this workflow later when resources are freed"
             exit 1
           fi
               
