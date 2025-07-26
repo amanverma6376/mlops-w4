@@ -184,8 +184,8 @@ jobs:
           # Check if cluster exists, create if not
           echo "Checking for existing cluster..."
           
-          # Find cluster in any zone
-          EXISTING_CLUSTER_ZONE=$(gcloud container clusters list --filter="name=iris-k8s-cluster" --format="value(zone)" --project=citric-aleph-461515-j9)
+          # Find cluster in any zone (get only the first one if multiple exist)
+          EXISTING_CLUSTER_ZONE=$(gcloud container clusters list --filter="name=iris-k8s-cluster" --format="value(zone)" --project=citric-aleph-461515-j9 --limit=1)
           
           if [ ! -z "$EXISTING_CLUSTER_ZONE" ]; then
             echo "✅ Cluster iris-k8s-cluster already exists in zone: $EXISTING_CLUSTER_ZONE"
@@ -318,8 +318,8 @@ jobs:
           # Get cluster credentials with auth plugin
           echo "Getting cluster credentials..."
           
-          # Detect cluster zone automatically
-          CLUSTER_ZONE=$(gcloud container clusters list --filter="name=iris-k8s-cluster" --format="value(zone)" --project=citric-aleph-461515-j9)
+          # Detect cluster zone automatically (get only the first one if multiple exist)
+          CLUSTER_ZONE=$(gcloud container clusters list --filter="name=iris-k8s-cluster" --format="value(zone)" --project=citric-aleph-461515-j9 --limit=1)
           if [ -z "$CLUSTER_ZONE" ]; then
             echo "❌ Could not detect cluster zone"
             exit 1
