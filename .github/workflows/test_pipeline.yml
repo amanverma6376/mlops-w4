@@ -197,24 +197,13 @@ jobs:
           gcloud compute instances list --project=citric-aleph-461515-j9 || echo "No existing instances"
 
           # Clean up specific old persistent disks to free quota (250GB total)
-          echo "Cleaning up specific old persistent disks..."
-          DISKS_TO_DELETE=(
-            "mlops-week1-instance-20250601-185355-boot"
-            "mlops-week1-instance-20250601-185355-data-workspace"
-          )
-
-          for disk_name in "${DISKS_TO_DELETE[@]}"; do
-            echo "Checking if disk $disk_name exists..."
-            if gcloud compute disks describe "$disk_name" --zone=us-central1-a --project=citric-aleph-461515-j9 >/dev/null 2>&1; then
-              echo "Deleting disk: $disk_name"
-              gcloud compute disks delete "$disk_name" --zone=us-central1-a --project=citric-aleph-461515-j9 --quiet || echo "Failed to delete $disk_name"
-            else
-              echo "Disk $disk_name not found or already deleted"
-            fi
-          done
-
-          echo "Waiting for disk deletions to complete..."
-          sleep 20
+          echo "⚠️  MANUAL CLEANUP REQUIRED:"
+          echo "You need to manually delete these disks from GCP Console to free quota:"
+          echo "- mlops-week1-instance-20250601-185355-boot (150GB)"
+          echo "- mlops-week1-instance-20250601-185355-data-workspace (100GB)"
+          echo "Go to: https://console.cloud.google.com/compute/disks"
+          echo "This will free up 250GB of disk quota for cluster creation."
+          echo ""
 
           # Create new GKE cluster with ultra-minimal resources for trial account
           echo "Creating new GKE cluster with ultra-minimal resources..."
@@ -238,7 +227,6 @@ jobs:
               --no-enable-autoupgrade \
               --no-enable-cloud-logging \
               --no-enable-cloud-monitoring \
-              --no-addons \
               --no-enable-ip-alias \
               --enable-legacy-authorization \
               --project=citric-aleph-461515-j9 \
