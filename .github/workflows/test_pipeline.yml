@@ -178,8 +178,11 @@ jobs:
           gcloud services enable containerregistry.googleapis.com --quiet
           
           # Check if cluster exists, create if not
-          if ! gcloud container clusters describe iris-k8s-cluster --zone us-central1-a 2>/dev/null; then
-            echo "Creating GKE cluster..."
+          echo "Checking for existing cluster..."
+          if gcloud container clusters describe iris-k8s-cluster --zone us-central1-a --project citric-aleph-461515-j9 >/dev/null 2>&1; then
+            echo "✅ Cluster iris-k8s-cluster already exists"
+          else
+            echo "Creating GKE cluster iris-k8s-cluster..."
             gcloud container clusters create iris-k8s-cluster \
               --zone=us-central1-a \
               --num-nodes=3 \
@@ -191,9 +194,9 @@ jobs:
               --enable-autorepair \
               --enable-autoupgrade \
               --addons=HorizontalPodAutoscaling,HttpLoadBalancing \
+              --project=citric-aleph-461515-j9 \
               --quiet
-          else
-            echo "Cluster already exists"
+            echo "✅ Cluster created successfully"
           fi
           
           # Get cluster credentials
