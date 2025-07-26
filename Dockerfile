@@ -16,11 +16,11 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy minimal requirements for API only
-COPY requirements-api.txt .
+# Copy ultra-minimal requirements for API only
+COPY requirements-minimal.txt .
 
-# Install minimal Python dependencies
-RUN pip install --no-cache-dir -r requirements-api.txt
+# Install ultra-minimal Python dependencies
+RUN pip install --no-cache-dir -r requirements-minimal.txt
 
 # Copy application code
 COPY iris_api.py .

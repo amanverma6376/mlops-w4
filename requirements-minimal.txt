@@ -1,0 +1,7 @@
+# Ultra-minimal requirements for API only (no pandas)
+fastapi==0.115.12
+uvicorn==0.34.0
+pydantic==2.10.6
+scikit-learn==1.6.1
+numpy==1.26.4
+joblib==1.4.2
