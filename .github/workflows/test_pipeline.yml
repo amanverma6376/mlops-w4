@@ -13,12 +13,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: "18"
 
       - name: Install Python dependencies
         run: |
@@ -44,7 +44,7 @@ jobs:
           import pandas as pd
           from sklearn.datasets import load_iris
           import os
-          
+
           if not os.path.exists('data/iris.csv'):
               iris = load_iris()
               df = pd.DataFrame(iris.data, columns=iris.feature_names)
@@ -59,20 +59,20 @@ jobs:
         run: |
           # Set up MLflow tracking directory
           mkdir -p mlflow_tracking
-          
+
           # Train model with hyperparameter tuning (reduce trials for CI)
           python -c "
           from iris_pipeline_mlflow import IrisMLflowPipeline
           import logging
           logging.basicConfig(level=logging.INFO)
-          
+
           pipeline = IrisMLflowPipeline()
           X_train, X_test, y_train, y_test, X, y = pipeline.load_data()
-          
+
           # Run quick hyperparameter tuning for CI with reduced trials
           models = ['logistic_regression', 'random_forest', 'svm']
           results = {}
-          
+
           for model_type in models:
               print(f'Training {model_type} with reduced trials...')
               best_params, best_cv_score = pipeline.tune_hyperparameters(
@@ -83,14 +83,14 @@ jobs:
               )
               results[model_type] = test_accuracy
               print(f'{model_type} completed with accuracy: {test_accuracy:.4f}')
-          
+
           print('Pipeline completed successfully')
           print(f'Results: {results}')
           "
-          
+
           # Run tests and capture results
           python -m pytest tests/ -v > test_results.txt 2>&1 || echo "Tests completed"
-          
+
           # Create CML report
           echo "# 🚀 ML Pipeline Results with MLflow" > report.md
           echo "" >> report.md
@@ -98,7 +98,7 @@ jobs:
           echo '```' >> report.md
           cat test_results.txt >> report.md
           echo '```' >> report.md
-          
+
           # Check if model was created
           if [ -f "model.pkl" ]; then
             echo "" >> report.md
@@ -110,7 +110,7 @@ jobs:
             echo "## ❌ Model Training" >> report.md
             echo "- Model training failed or model file not found" >> report.md
           fi
-          
+
           # Check for MLflow artifacts
           if [ -f "logistic_regression_model.pkl" ] || [ -f "random_forest_model.pkl" ] || [ -f "svm_model.pkl" ]; then
             echo "" >> report.md
@@ -119,7 +119,7 @@ jobs:
             echo "- Multiple models trained and logged to MLflow" >> report.md
             ls -la *.pkl | while read line; do echo "- $line" >> report.md; done
           fi
-          
+
           # Check MLflow tracking
           if [ -d "mlflow_tracking" ]; then
             echo "" >> report.md
@@ -127,7 +127,7 @@ jobs:
             echo "- MLflow tracking database created successfully" >> report.md
             echo "- Tracking directory size: $(du -sh mlflow_tracking | cut -f1)" >> report.md
           fi
-          
+
           # Add training log if available
           if [ -f "training.log" ]; then
             echo "" >> report.md
@@ -152,46 +152,46 @@ jobs:
           # Tag with commit SHA and latest
           IMAGE_TAG="gcr.io/citric-aleph-461515-j9/iris-api:${{ github.sha }}"
           LATEST_TAG="gcr.io/citric-aleph-461515-j9/iris-api:latest"
-          
+
           echo "Building Docker image..."
           docker build -t $IMAGE_TAG -t $LATEST_TAG .
-          
+
           echo "Pushing Docker image to GCR..."
           docker push $IMAGE_TAG
           docker push $LATEST_TAG
-          
+
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
           echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
 
       - name: Install kubectl
         uses: azure/setup-kubectl@v3
         with:
-          version: 'v1.28.0'
+          version: "v1.28.0"
 
       - name: Set up GKE cluster and credentials
         run: |
           # Set project
           gcloud config set project citric-aleph-461515-j9
-          
+
           # Create unique cluster name using GitHub run ID
           CLUSTER_NAME="iris-k8s-${{ github.run_id }}"
           echo "Creating cluster with unique name: $CLUSTER_NAME"
-          
+
           # Install gke-gcloud-auth-plugin for kubectl authentication
           echo "Installing gke-gcloud-auth-plugin..."
           gcloud components install gke-gcloud-auth-plugin --quiet
-          
+
           # Enable required APIs
           gcloud services enable container.googleapis.com --quiet
           gcloud services enable containerregistry.googleapis.com --quiet
-          
+
           # Create new GKE cluster with unique name and minimal resources
           echo "Creating new GKE cluster with minimal resources..."
-          
+
           # Try multiple zones in us-central1 region to avoid quota issues
           ZONES=("us-central1-a" "us-central1-b" "us-central1-c")
           CLUSTER_CREATED=false
-          
+
           for zone in "${ZONES[@]}"; do
             echo "Attempting to create cluster $CLUSTER_NAME in zone: $zone"
             
@@ -200,6 +200,7 @@ jobs:
               --num-nodes=1 \
               --machine-type=e2-micro \
               --disk-size=100GB \
+              --boot-disk-size=100GB \
               --disk-type=pd-standard \
               --enable-autoscaling \
               --min-nodes=1 \
@@ -224,7 +225,7 @@ jobs:
               echo "❌ Failed to create cluster in zone: $zone (likely quota limits)"
             fi
           done
-          
+
           if [ "$CLUSTER_CREATED" = false ]; then
             echo "❌ Failed to create cluster in all zones due to quota limits"
             echo "💡 Please increase your GCP quota or delete unused resources"
@@ -232,18 +233,18 @@ jobs:
           fi
               
 
-          
+
           # Get cluster credentials with auth plugin
           echo "Getting cluster credentials for $CLUSTER_NAME in zone $CLUSTER_ZONE..."
           gcloud container clusters get-credentials $CLUSTER_NAME --zone $CLUSTER_ZONE --project citric-aleph-461515-j9
-          
+
           # Set up kubectl authentication
           export USE_GKE_GCLOUD_AUTH_PLUGIN=True
-          
+
           # Wait a moment for cluster to be fully ready
           echo "Waiting for cluster to be fully ready..."
           sleep 30
-          
+
           # Verify kubectl connection with retry
           echo "Verifying kubectl connection..."
           for i in {1..5}; do
@@ -261,7 +262,7 @@ jobs:
         run: |
           # Create namespace if it doesn't exist
           kubectl create namespace iris-mlops --dry-run=client -o yaml | kubectl apply -f -
-          
+
           # Create Docker registry secret
           echo '${{ secrets.GCP_SA_KEY }}' | base64 -d > /tmp/gcr-key.json
           kubectl create secret docker-registry gcr-json-key \
@@ -271,19 +272,19 @@ jobs:
             --docker-email=service-account@citric-aleph-461515-j9.iam.gserviceaccount.com \
             --namespace=iris-mlops --dry-run=client -o yaml | kubectl apply -f -
           rm -f /tmp/gcr-key.json
-          
+
           # Update deployment image
           sed -i "s|gcr.io/citric-aleph-461515-j9/iris-api:latest|${{ env.IMAGE_TAG }}|g" k8s/deployment.yaml
-          
+
           # Apply Kubernetes manifests
           kubectl apply -f k8s/deployment.yaml -n iris-mlops
-          
+
           # Wait for deployment to be ready
           kubectl rollout status deployment/iris-api -n iris-mlops --timeout=300s
-          
+
           # Get service details
           kubectl get services -n iris-mlops
-          
+
           echo "# 🚀 Kubernetes Deployment Status" >> report.md
           echo "" >> report.md
           echo "## 📦 Docker Image" >> report.md
@@ -313,7 +314,7 @@ jobs:
             echo "Waiting for external IP... ($i/30)"
             sleep 10
           done
-          
+
           # Test API endpoints
           if [ ! -z "$EXTERNAL_IP" ] && [ "$EXTERNAL_IP" != "null" ]; then
             echo "Testing API endpoints..."
@@ -353,7 +354,7 @@ jobs:
         run: |
           # Clean up the unique cluster created for this run
           echo "Cleaning up cluster: ${{ env.CLUSTER_NAME }}"
-          
+
           if [ ! -z "${{ env.CLUSTER_NAME }}" ] && [ ! -z "${{ env.CLUSTER_ZONE }}" ]; then
             echo "Deleting cluster ${{ env.CLUSTER_NAME }} in zone ${{ env.CLUSTER_ZONE }}..."
             gcloud container clusters delete ${{ env.CLUSTER_NAME }} --zone=${{ env.CLUSTER_ZONE }} --project=citric-aleph-461515-j9 --quiet --async
