@@ -199,7 +199,7 @@ jobs:
               --zone=$zone \
               --num-nodes=1 \
               --machine-type=e2-micro \
-              --disk-size=20GB \
+              --disk-size=100GB \
               --disk-type=pd-standard \
               --enable-autoscaling \
               --min-nodes=1 \
