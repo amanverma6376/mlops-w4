@@ -67,10 +67,25 @@ jobs:
           logging.basicConfig(level=logging.INFO)
           
           pipeline = IrisMLflowPipeline()
-          # Reduce trials for faster CI execution
-          pipeline.tune_hyperparameters = lambda *args, **kwargs: pipeline.tune_hyperparameters(*args, n_trials=5, **{k:v for k,v in kwargs.items() if k != 'n_trials'})
-          results = pipeline.run_experiment()
+          X_train, X_test, y_train, y_test, X, y = pipeline.load_data()
+          
+          # Run quick hyperparameter tuning for CI with reduced trials
+          models = ['logistic_regression', 'random_forest', 'svm']
+          results = {}
+          
+          for model_type in models:
+              print(f'Training {model_type} with reduced trials...')
+              best_params, best_cv_score = pipeline.tune_hyperparameters(
+                  X_train, y_train, model_type, n_trials=5
+              )
+              model, run_id, test_accuracy = pipeline.train_and_log_model(
+                  model_type, best_params, X_train, X_test, y_train, y_test, X, y
+              )
+              results[model_type] = test_accuracy
+              print(f'{model_type} completed with accuracy: {test_accuracy:.4f}')
+          
           print('Pipeline completed successfully')
+          print(f'Results: {results}')
           "
           
           # Run tests and capture results
