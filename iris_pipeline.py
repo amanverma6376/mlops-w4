@@ -18,7 +18,7 @@ def train_model():
 
     # Save model
     joblib.dump(model, "model.pkl")
-    print("✅ Model trained and saved as model.pkl")
+    print("Model trained and saved as model.pkl")
 
 if __name__ == "__main__":
     train_model()

@@ -27,11 +27,11 @@ class IrisAPITester:
         self.results["total_tests"] += 1
         if passed:
             self.results["passed"] += 1
-            print(f"✅ {test_name}: PASSED {message}")
+            print(f"PASS {test_name}: {message}")
         else:
             self.results["failed"] += 1
             self.results["errors"].append(f"{test_name}: {message}")
-            print(f"❌ {test_name}: FAILED {message}")
+            print(f"FAIL {test_name}: {message}")
     
     def test_root_endpoint(self) -> bool:
         """Test root endpoint"""
@@ -220,47 +220,41 @@ class IrisAPITester:
     
     def run_all_tests(self):
         """Run all tests"""
-        print("🧪 Starting API Tests...")
+        print("Starting API Tests...")
         print("=" * 50)
         
-        # Basic connectivity
-        print("\n📡 Testing Basic Connectivity:")
+        print("\nTesting Basic Connectivity:")
         self.test_root_endpoint()
         self.test_health_endpoint()
         
-        # Core functionality
-        print("\n🎯 Testing Core Functionality:")
+        print("\nTesting Core Functionality:")
         self.test_predict_endpoint()
         self.test_predict_batch_endpoint()
         self.test_model_info_endpoint()
         
-        # Error handling
-        print("\n🛡️ Testing Error Handling:")
+        print("\nTesting Error Handling:")
         self.test_invalid_prediction()
         
-        # Documentation
-        print("\n📚 Testing Documentation:")
+        print("\nTesting Documentation:")
         self.test_openapi_docs()
         
-        # Performance
-        print("\n⚡ Testing Performance:")
+        print("\nTesting Performance:")
         self.test_performance()
         
-        # Summary
         print("\n" + "=" * 50)
-        print("📊 TEST SUMMARY")
+        print("TEST SUMMARY")
         print("=" * 50)
         print(f"Total Tests: {self.results['total_tests']}")
-        print(f"✅ Passed: {self.results['passed']}")
-        print(f"❌ Failed: {self.results['failed']}")
+        print(f"Passed: {self.results['passed']}")
+        print(f"Failed: {self.results['failed']}")
         
         if self.results['failed'] > 0:
-            print(f"\n❌ Failed Tests:")
+            print(f"\nFailed Tests:")
             for error in self.results['errors']:
                 print(f"  - {error}")
             return False
         else:
-            print(f"\n🎉 ALL TESTS PASSED! API is ready for production.")
+            print(f"\nALL TESTS PASSED! API is ready for production.")
             return True
 
 def main():
@@ -274,7 +268,7 @@ def main():
     args = parser.parse_args()
     
     if args.wait > 0:
-        print(f"⏳ Waiting {args.wait} seconds for API to start...")
+        print(f"Waiting {args.wait} seconds for API to start...")
         time.sleep(args.wait)
     
     tester = IrisAPITester(args.url)
