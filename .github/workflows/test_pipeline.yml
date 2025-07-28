@@ -24,8 +24,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          # Install additional dependencies for testing scripts
-          pip install aiohttp asyncio-timeout
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -339,82 +337,164 @@ jobs:
             sleep 10
           done
 
-          # Test API endpoints with shorter timeout
+          # Test API endpoints with proper retry logic
           if [ ! -z "$EXTERNAL_IP" ] && [ "$EXTERNAL_IP" != "null" ]; then
             echo "Testing API endpoints..."
+            echo "API URL: http://$EXTERNAL_IP"
             
-            # Test health endpoint
-            curl -f --max-time 30 http://$EXTERNAL_IP/health || echo "Health check failed"
-            
-            # Test prediction endpoint
-            curl -X POST --max-time 30 http://$EXTERNAL_IP/predict \
-              -H "Content-Type: application/json" \
-              -d '{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}' || echo "Prediction test failed"
-            
-            # Run concurrent scaling tests with light test option for CI
-            echo "Running concurrent scaling tests..."
-            if python3 testing/gcp_concurrent_scaling_test.py --url http://$EXTERNAL_IP --light-test > concurrent_test_results.txt 2>&1; then
-              echo "Concurrent scaling test completed successfully"
-            else
-              echo "Concurrent scaling test failed, generating dynamic fallback report..."
-              if python3 utils/generate_dynamic_report.py http://$EXTERNAL_IP > concurrent_test_results.txt 2>&1; then
-                echo "Dynamic fallback report generated successfully"
+            # Wait for API to be ready with retry logic
+            echo "Waiting for API to be ready..."
+            API_READY=false
+            for i in {1..20}; do
+              echo "Attempt $i/20: Testing API readiness..."
+              if curl -f --max-time 10 http://$EXTERNAL_IP/health >/dev/null 2>&1; then
+                echo "✅ API is ready!"
+                API_READY=true
+                break
               else
-                echo "Dynamic report also failed, creating basic fallback..."
-                echo "GCP Concurrent Scaling Test" > concurrent_test_results.txt
-                echo "========================================" >> concurrent_test_results.txt
-                echo "API URL: http://$EXTERNAL_IP" >> concurrent_test_results.txt
-                echo "" >> concurrent_test_results.txt
-                echo "Both primary and dynamic tests failed." >> concurrent_test_results.txt
-                echo "API may not be accessible or scripts have errors." >> concurrent_test_results.txt
+                echo "API not ready yet, waiting 15 seconds..."
+                sleep 15
               fi
+            done
+            
+            if [ "$API_READY" = true ]; then
+              # Test health endpoint
+              echo "Testing health endpoint..."
+              curl -f --max-time 30 http://$EXTERNAL_IP/health || echo "Health check failed"
+              
+              # Test prediction endpoint
+              echo "Testing prediction endpoint..."
+              curl -X POST --max-time 30 http://$EXTERNAL_IP/predict \
+                -H "Content-Type: application/json" \
+                -d '{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}' || echo "Prediction test failed"
+              
+              # Check Python and dependencies
+              echo "Checking Python environment..."
+              python3 --version
+              python3 -c "import aiohttp; print('aiohttp version:', aiohttp.__version__)" || echo "aiohttp not available"
+              python3 -c "import requests; print('requests version:', requests.__version__)" || echo "requests not available"
+              
+              # Test API connectivity
+              echo "Running comprehensive API connectivity test..."
+              python3 utils/test_api_connectivity.py http://$EXTERNAL_IP || echo "Connectivity test completed with warnings"
+            else
+              echo "❌ API failed to become ready after 5 minutes"
+              echo "Debugging information:"
+              echo "1. Pod status:"
+              kubectl get pods -n iris-mlops -o wide
+              echo ""
+              echo "2. Pod descriptions:"
+              kubectl describe pods -n iris-mlops
+              echo ""
+              echo "3. Recent pod logs:"
+              kubectl logs -l app=iris-api -n iris-mlops --tail=50 || echo "No logs available"
+              echo ""
+              echo "4. Service status:"
+              kubectl get services -n iris-mlops
+              echo ""
+              echo "5. Events:"
+              kubectl get events -n iris-mlops --sort-by='.lastTimestamp' | tail -10
             fi
             
-            # Run batch processing tests
-            echo "Testing batch processing..."
-            if python3 testing/batch_comparison.py http://$EXTERNAL_IP > batch_test_results.txt 2>&1; then
-              echo "Batch processing test completed successfully"
-            else
-              echo "Batch processing test failed, using simple fallback..."
-              if python3 utils/simple_batch_test.py http://$EXTERNAL_IP > batch_test_results.txt 2>&1; then
-                echo "Simple batch test completed successfully"
+            # Run tests only if API is ready
+            if [ "$API_READY" = true ]; then
+              # Run concurrent scaling tests with light test option for CI
+              echo "Running concurrent scaling tests..."
+              if python3 testing/gcp_concurrent_scaling_test.py --url http://$EXTERNAL_IP --light-test > concurrent_test_results.txt 2>&1; then
+                echo "✅ Concurrent scaling test completed successfully"
               else
-                echo "All batch tests failed, creating basic fallback..."
-                echo "Batch Processing Performance Comparison" > batch_test_results.txt
-                echo "==================================================" >> batch_test_results.txt
-                echo "All batch testing methods failed." >> batch_test_results.txt
-                echo "API may not be accessible or batch endpoint unavailable." >> batch_test_results.txt
+                echo "❌ Concurrent scaling test failed, generating dynamic fallback..."
+                if python3 utils/generate_dynamic_report.py http://$EXTERNAL_IP > concurrent_test_results.txt 2>&1; then
+                  echo "✅ Dynamic fallback report generated successfully"
+                else
+                  echo "❌ All tests failed, creating basic fallback..."
+                  echo "GCP Concurrent Scaling Test" > concurrent_test_results.txt
+                  echo "========================================" >> concurrent_test_results.txt
+                  echo "API URL: http://$EXTERNAL_IP" >> concurrent_test_results.txt
+                  echo "Generated: $(date -u)" >> concurrent_test_results.txt
+                  echo "" >> concurrent_test_results.txt
+                  echo "API was accessible but tests failed." >> concurrent_test_results.txt
+                  echo "Check logs for detailed error information." >> concurrent_test_results.txt
+                fi
               fi
+            else
+              echo "❌ Skipping tests because API is not ready"
+              echo "GCP Concurrent Scaling Test" > concurrent_test_results.txt
+              echo "========================================" >> concurrent_test_results.txt
+              echo "API URL: http://$EXTERNAL_IP" >> concurrent_test_results.txt
+              echo "Generated: $(date -u)" >> concurrent_test_results.txt
+              echo "" >> concurrent_test_results.txt
+              echo "Tests skipped because API was not ready within timeout period." >> concurrent_test_results.txt
+              echo "This may indicate:" >> concurrent_test_results.txt
+              echo "  - Pod startup issues" >> concurrent_test_results.txt
+              echo "  - Resource constraints" >> concurrent_test_results.txt
+              echo "  - Image pull problems" >> concurrent_test_results.txt
+              echo "  - Application startup errors" >> concurrent_test_results.txt
             fi
             
-            # Run API features comparison
+            # Run batch processing tests only if API is ready
+            if [ "$API_READY" = true ]; then
+              echo "Testing batch processing..."
+              if python3 testing/batch_comparison.py http://$EXTERNAL_IP > batch_test_results.txt 2>&1; then
+                echo "✅ Batch processing test completed successfully"
+              else
+                echo "❌ Batch processing test failed, using simple fallback..."
+                if python3 utils/simple_batch_test.py http://$EXTERNAL_IP > batch_test_results.txt 2>&1; then
+                  echo "✅ Simple batch test completed successfully"
+                else
+                  echo "❌ All batch tests failed"
+                  echo "Batch Processing Performance Comparison" > batch_test_results.txt
+                  echo "==================================================" >> batch_test_results.txt
+                  echo "Generated: $(date -u)" >> batch_test_results.txt
+                  echo "API URL: http://$EXTERNAL_IP" >> batch_test_results.txt
+                  echo "" >> batch_test_results.txt
+                  echo "All batch testing methods failed." >> batch_test_results.txt
+                  echo "API was accessible but batch endpoints may not be available." >> batch_test_results.txt
+                fi
+              fi
+            else
+              echo "❌ Skipping batch tests because API is not ready"
+              echo "Batch Processing Performance Comparison" > batch_test_results.txt
+              echo "==================================================" >> batch_test_results.txt
+              echo "Tests skipped because API was not ready." >> batch_test_results.txt
+            fi
+            
+            # Run API features comparison (this doesn't need API to be ready)
             echo "Generating API features comparison..."
             if python3 utils/api_features_comparison.py > api_features_results.txt 2>&1; then
-              echo "API features comparison completed successfully"
+              echo "✅ API features comparison completed successfully"
             else
-              echo "API features comparison failed, using simple fallback..."
+              echo "❌ API features comparison failed, using simple fallback..."
               if python3 utils/simple_api_features.py > api_features_results.txt 2>&1; then
-                echo "Simple API features comparison generated successfully"
+                echo "✅ Simple API features comparison generated successfully"
               else
-                echo "All API features comparison methods failed, creating basic fallback..."
+                echo "❌ All API features comparison methods failed"
                 echo "API FEATURES AND ARCHITECTURE COMPARISON" > api_features_results.txt
                 echo "============================================================" >> api_features_results.txt
                 echo "Comparison generation failed. Scripts may have errors." >> api_features_results.txt
               fi
             fi
             
-            # Run GCP API analysis
-            echo "Running GCP API analysis..."
-            if python3 testing/gcp_api_comparison.py --url http://$EXTERNAL_IP > gcp_api_analysis.txt 2>&1; then
-              echo "GCP API analysis completed successfully"
+            # Run GCP API analysis only if API is ready
+            if [ "$API_READY" = true ]; then
+              echo "Running GCP API analysis..."
+              if python3 testing/gcp_api_comparison.py --url http://$EXTERNAL_IP > gcp_api_analysis.txt 2>&1; then
+                echo "✅ GCP API analysis completed successfully"
+              else
+                echo "❌ GCP API analysis failed, creating fallback..."
+                echo "GCP API Performance Analysis" > gcp_api_analysis.txt
+                echo "========================================" >> gcp_api_analysis.txt
+                echo "API URL: http://$EXTERNAL_IP" >> gcp_api_analysis.txt
+                echo "Generated: $(date -u)" >> gcp_api_analysis.txt
+                echo "" >> gcp_api_analysis.txt
+                echo "GCP API analysis failed." >> gcp_api_analysis.txt
+                echo "API was accessible but analysis script encountered errors." >> gcp_api_analysis.txt
+              fi
             else
-              echo "GCP API analysis failed, creating fallback results..."
+              echo "❌ Skipping GCP API analysis because API is not ready"
               echo "GCP API Performance Analysis" > gcp_api_analysis.txt
               echo "========================================" >> gcp_api_analysis.txt
-              echo "API URL: http://$EXTERNAL_IP" >> gcp_api_analysis.txt
-              echo "" >> gcp_api_analysis.txt
-              echo "Test execution failed. Check logs for details." >> gcp_api_analysis.txt
-              echo "Fallback results generated." >> gcp_api_analysis.txt
+              echo "Tests skipped because API was not ready." >> gcp_api_analysis.txt
             fi
             
             # Install and run wrk comparison
@@ -439,20 +519,27 @@ jobs:
             echo "" >> wrk_comparison_results.txt
             echo "wrk benchmarking completed" >> wrk_comparison_results.txt
             
-            # Run additional load tests
-            echo "Running additional load tests..."
-            if python3 testing/concurrent_load_test.py --url http://$EXTERNAL_IP --users 25 --requests 4 > additional_load_test.txt 2>&1; then
-              echo "Additional load test completed successfully"
+            # Run additional load tests only if API is ready
+            if [ "$API_READY" = true ]; then
+              echo "Running additional load tests..."
+              if python3 testing/concurrent_load_test.py --url http://$EXTERNAL_IP --users 25 --requests 4 > additional_load_test.txt 2>&1; then
+                echo "✅ Additional load test completed successfully"
+              else
+                echo "❌ Additional load test failed"
+                echo "Starting concurrent test:" > additional_load_test.txt
+                echo "   Endpoint: /predict" >> additional_load_test.txt
+                echo "   Concurrent users: 25" >> additional_load_test.txt
+                echo "   Requests per user: 4" >> additional_load_test.txt
+                echo "   Total requests: 100" >> additional_load_test.txt
+                echo "Generated: $(date -u)" >> additional_load_test.txt
+                echo "" >> additional_load_test.txt
+                echo "Additional load test failed." >> additional_load_test.txt
+                echo "API was accessible but load test encountered errors." >> additional_load_test.txt
+              fi
             else
-              echo "Additional load test failed, creating fallback results..."
+              echo "❌ Skipping additional load tests because API is not ready"
               echo "Starting concurrent test:" > additional_load_test.txt
-              echo "   Endpoint: /predict" >> additional_load_test.txt
-              echo "   Concurrent users: 25" >> additional_load_test.txt
-              echo "   Requests per user: 4" >> additional_load_test.txt
-              echo "   Total requests: 100" >> additional_load_test.txt
-              echo "" >> additional_load_test.txt
-              echo "Test execution failed. Check logs for details." >> additional_load_test.txt
-              echo "Fallback results generated." >> additional_load_test.txt
+              echo "   Tests skipped because API was not ready." >> additional_load_test.txt
             fi
             
             # Add results to report

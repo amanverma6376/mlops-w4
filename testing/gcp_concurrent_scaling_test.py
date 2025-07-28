@@ -312,11 +312,16 @@ async def main():
     print("GCP Concurrent Scaling Test")
     print("=" * 40)
     print(f"API URL: {api_url}")
+    print(f"Light test mode: {args.light_test}")
     print()
     
     # Test API health first
-    if not await test_gcp_api_health(api_url):
-        print("API is not accessible. Exiting.")
+    try:
+        if not await test_gcp_api_health(api_url):
+            print("API health check failed. Exiting.")
+            sys.exit(1)
+    except Exception as e:
+        print(f"Error during API health check: {e}")
         sys.exit(1)
     
     # Test batch processing
@@ -366,5 +371,7 @@ if __name__ == "__main__":
         print("\nTest interrupted by user")
         sys.exit(1)
     except Exception as e:
-        print(f"Test failed: {e}")
+        print(f"Test failed with exception: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)

@@ -212,17 +212,29 @@ def run_batch_comparison(api_url: str = "http://localhost:8000"):
 if __name__ == "__main__":
     import sys
     
-    api_url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
+    if len(sys.argv) < 2:
+        print("Usage: python batch_comparison.py <api_url>")
+        sys.exit(1)
+    
+    api_url = sys.argv[1]
     
     try:
+        print(f"Testing batch comparison for API: {api_url}")
+        
         # Check if API is accessible
-        response = requests.get(f"{api_url}/health", timeout=5)
+        response = requests.get(f"{api_url}/health", timeout=10)
         if response.status_code != 200:
-            print(f"Error: API at {api_url} is not accessible")
+            print(f"Error: API at {api_url} is not accessible (Status: {response.status_code})")
             sys.exit(1)
         
+        print("API health check passed, running batch comparison...")
         run_batch_comparison(api_url)
         
+    except requests.exceptions.RequestException as e:
+        print(f"Network error connecting to API: {e}")
+        sys.exit(1)
     except Exception as e:
         print(f"Error running batch comparison: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)

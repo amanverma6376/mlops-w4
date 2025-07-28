@@ -222,12 +222,13 @@ async def predict_batch_async(features_list: List[IrisFeatures]) -> List[IrisPre
     results = await loop.run_in_executor(thread_pool, predict_batch_sync)
     
     # Update request count
+    global request_count
     with request_count_lock:
         request_count += len(features_list)
     
     return results
 
-@app.get("/", response_model=Dict[str, str])
+@app.get("/")
 async def root():
     """Root endpoint"""
     return {
