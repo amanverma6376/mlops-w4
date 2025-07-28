@@ -52,21 +52,47 @@ def test_single_requests(api_url: str, num_requests: int) -> Dict:
         'throughput': successful / total_time if total_time > 0 else 0
     }
 
+def detect_api_type(api_url: str) -> str:
+    """Detect if API is basic or enhanced"""
+    try:
+        response = requests.get(f"{api_url}/", timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            if "version" in data and data.get("version") == "2.0.0":
+                return "enhanced"
+            elif "features" in data:
+                return "enhanced"
+        return "basic"
+    except:
+        return "basic"
+
 def test_batch_requests(api_url: str, num_batches: int, batch_size: int) -> Dict:
     """Test batch requests"""
     
-    # Create batch data
-    batch_data = {
-        "features_list": [
-            {
-                "sepal_length": 5.1 + (i * 0.1),
-                "sepal_width": 3.5 + (i * 0.05),
-                "petal_length": 1.4 + (i * 0.1),
-                "petal_width": 0.2 + (i * 0.02)
-            }
-            for i in range(batch_size)
-        ]
-    }
+    # Detect API type to format request correctly
+    api_type = detect_api_type(api_url)
+    
+    # Create base feature data
+    features_data = [
+        {
+            "sepal_length": 5.1 + (i * 0.1),
+            "sepal_width": 3.5 + (i * 0.05),
+            "petal_length": 1.4 + (i * 0.1),
+            "petal_width": 0.2 + (i * 0.02)
+        }
+        for i in range(batch_size)
+    ]
+    
+    # Format request based on API type
+    if api_type == "enhanced":
+        # Enhanced API expects BatchPredictionRequest format
+        batch_data = {
+            "features_list": features_data,
+            "batch_id": f"test_batch_{int(time.time())}"
+        }
+    else:
+        # Basic API expects direct list
+        batch_data = features_data
     
     response_times = []
     successful = 0

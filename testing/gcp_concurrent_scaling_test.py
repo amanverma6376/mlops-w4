@@ -224,17 +224,45 @@ async def test_gcp_api_health(api_url: str) -> bool:
         print(f"API Health Check: ERROR - {e}")
         return False
 
+async def detect_api_type(api_url: str) -> str:
+    """Detect if API is basic or enhanced"""
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+            async with session.get(f"{api_url}/") as response:
+                if response.status == 200:
+                    data = await response.json()
+                    if "version" in data and data.get("version") == "2.0.0":
+                        return "enhanced"
+                    elif "features" in data:
+                        return "enhanced"
+        return "basic"
+    except:
+        return "basic"
+
 async def test_batch_processing(api_url: str):
     """Test batch processing if available"""
     print(f"\nTesting Batch Processing:")
     
-    batch_data = {
-        "features_list": [
-            {"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2},
-            {"sepal_length": 6.2, "sepal_width": 3.4, "petal_length": 5.4, "petal_width": 2.3},
-            {"sepal_length": 5.9, "sepal_width": 3.0, "petal_length": 5.1, "petal_width": 1.8}
-        ]
-    }
+    # Detect API type
+    api_type = await detect_api_type(api_url)
+    
+    # Create base feature data
+    features_data = [
+        {"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2},
+        {"sepal_length": 6.2, "sepal_width": 3.4, "petal_length": 5.4, "petal_width": 2.3},
+        {"sepal_length": 5.9, "sepal_width": 3.0, "petal_length": 5.1, "petal_width": 1.8}
+    ]
+    
+    # Format request based on API type
+    if api_type == "enhanced":
+        # Enhanced API expects BatchPredictionRequest format
+        batch_data = {
+            "features_list": features_data,
+            "batch_id": f"test_batch_{int(time.time())}"
+        }
+    else:
+        # Basic API expects direct list
+        batch_data = features_data
     
     try:
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
@@ -245,10 +273,24 @@ async def test_batch_processing(api_url: str):
                 if response.status == 200:
                     data = await response.json()
                     print(f"  Batch Processing: SUCCESS")
-                    print(f"  Batch Size: {len(batch_data['features_list'])}")
+                    
+                    # Handle different response formats
+                    if api_type == "enhanced":
+                        batch_size = len(batch_data["features_list"])
+                        if isinstance(data, dict) and "predictions" in data:
+                            predictions_count = len(data["predictions"])
+                            print(f"  API Type: Enhanced (v2.0.0)")
+                            print(f"  Batch ID: {data.get('batch_id', 'N/A')}")
+                        else:
+                            predictions_count = len(data) if isinstance(data, list) else 0
+                    else:
+                        batch_size = len(batch_data)
+                        predictions_count = len(data) if isinstance(data, list) else 0
+                        print(f"  API Type: Basic (v1.0.0)")
+                    
+                    print(f"  Batch Size: {batch_size}")
                     print(f"  Response Time: {(end_time - start_time)*1000:.1f}ms")
-                    if isinstance(data, list):
-                        print(f"  Predictions Returned: {len(data)}")
+                    print(f"  Predictions Returned: {predictions_count}")
                     return True
                 else:
                     print(f"  Batch Processing: FAILED (Status: {response.status})")
