@@ -106,9 +106,9 @@ jobs:
           python -m pytest tests/ -v > test_results.txt 2>&1 || echo "Tests completed"
 
           # Create CML report
-          echo "# 🚀 ML Pipeline Results with MLflow" > report.md
+          echo "# ML Pipeline Results with MLflow" > report.md
           echo "" >> report.md
-          echo "## 📊 Test Results" >> report.md
+          echo "## Test Results" >> report.md
           echo '```' >> report.md
           cat test_results.txt >> report.md
           echo '```' >> report.md
@@ -116,19 +116,19 @@ jobs:
           # Check if model was created
           if [ -f "model.pkl" ]; then
             echo "" >> report.md
-            echo "## ✅ Model Training" >> report.md
+            echo "## Model Training" >> report.md
             echo "- Model successfully trained and saved as \`model.pkl\`" >> report.md
             echo "- Model size: $(ls -lh model.pkl | awk '{print $5}')" >> report.md
           else
             echo "" >> report.md
-            echo "## ❌ Model Training" >> report.md
+            echo "## Model Training" >> report.md
             echo "- Model training failed or model file not found" >> report.md
           fi
 
           # Check for MLflow artifacts
           if [ -f "logistic_regression_model.pkl" ] || [ -f "random_forest_model.pkl" ] || [ -f "svm_model.pkl" ]; then
             echo "" >> report.md
-            echo "## 🧪 MLflow Hyperparameter Tuning" >> report.md
+            echo "## MLflow Hyperparameter Tuning" >> report.md
             echo "- Hyperparameter tuning completed successfully" >> report.md
             echo "- Multiple models trained and logged to MLflow" >> report.md
             ls -la *.pkl | while read line; do echo "- $line" >> report.md; done
@@ -137,7 +137,7 @@ jobs:
           # Check MLflow tracking
           if [ -d "mlflow_tracking" ]; then
             echo "" >> report.md
-            echo "## 📈 MLflow Tracking" >> report.md
+            echo "## MLflow Tracking" >> report.md
             echo "- MLflow tracking database created successfully" >> report.md
             echo "- Tracking directory size: $(du -sh mlflow_tracking | cut -f1)" >> report.md
           fi
@@ -145,7 +145,7 @@ jobs:
           # Add training log if available
           if [ -f "training.log" ]; then
             echo "" >> report.md
-            echo "## 📝 Training Log" >> report.md
+            echo "## Training Log" >> report.md
             echo '```' >> report.md
             head -50 training.log >> report.md
             echo '```' >> report.md
@@ -211,7 +211,7 @@ jobs:
           gcloud compute instances list --project=citric-aleph-461515-j9 || echo "No existing instances"
 
           # Clean up specific old persistent disks to free quota (250GB total)
-          echo "⚠️  MANUAL CLEANUP REQUIRED:"
+          echo "MANUAL CLEANUP REQUIRED:"
           echo "You need to manually delete these disks from GCP Console to free quota:"
           echo "- mlops-week1-instance-20250601-185355-boot (150GB)"
           echo "- mlops-week1-instance-20250601-185355-data-workspace (100GB)"
@@ -246,22 +246,22 @@ jobs:
               --project=citric-aleph-461515-j9 \
               --verbosity=info; then
               
-              echo "✅ Cluster created successfully in zone: $zone"
+              echo "Cluster created successfully in zone: $zone"
               CLUSTER_CREATED=true
               CLUSTER_ZONE=$zone
               echo "CLUSTER_NAME=$CLUSTER_NAME" >> $GITHUB_ENV
               echo "CLUSTER_ZONE=$CLUSTER_ZONE" >> $GITHUB_ENV
               break
             else
-              echo "❌ Failed to create cluster in zone: $zone"
+              echo "Failed to create cluster in zone: $zone"
               echo "Checking detailed error..."
               echo "Quota might be exceeded due to existing resources"
             fi
           done
 
           if [ "$CLUSTER_CREATED" = false ]; then
-            echo "❌ Failed to create cluster in all zones"
-            echo "💡 Checking what resources are currently in use..."
+            echo "Failed to create cluster in all zones"
+            echo "Checking what resources are currently in use..."
             
             # Check for existing resources that might be using quota
             echo "=== Current Compute Instances ==="
@@ -273,12 +273,10 @@ jobs:
             echo "=== Current Persistent Disks ==="
             gcloud compute disks list --project=citric-aleph-461515-j9 || echo "No disks found"
             
-            echo "💡 Please delete unused resources or request quota increase"
-            echo "💡 You can also try running this workflow later when resources are freed"
+            echo "Please delete unused resources or request quota increase"
+            echo "You can also try running this workflow later when resources are freed"
             exit 1
           fi
-              
-
 
           # Get cluster credentials with auth plugin
           echo "Getting cluster credentials for $CLUSTER_NAME in zone $CLUSTER_ZONE..."
@@ -295,7 +293,7 @@ jobs:
           echo "Verifying kubectl connection..."
           for i in {1..5}; do
             if kubectl cluster-info >/dev/null 2>&1; then
-              echo "✅ kubectl connected successfully"
+              echo "kubectl connected successfully"
               kubectl cluster-info
               break
             else
@@ -338,7 +336,7 @@ jobs:
           # Pre-pull the image to speed up deployment
           echo "Pre-pulling Docker image to cluster nodes..."
           kubectl create job image-puller --image=${{ env.IMAGE_TAG }} -n iris-mlops --dry-run=client -o yaml > /tmp/image-puller.yaml
-          echo "
+          cat >> /tmp/image-puller.yaml << 'YAML_EOF'
           spec:
             template:
               spec:
@@ -349,8 +347,8 @@ jobs:
                 restartPolicy: Never
                 imagePullSecrets:
                 - name: gcr-json-key
-          " >> /tmp/image-puller.yaml
-          
+          YAML_EOF
+
           kubectl apply -f /tmp/image-puller.yaml
           kubectl wait --for=condition=complete job/image-puller -n iris-mlops --timeout=300s || echo "Image pre-pull failed, continuing anyway"
           kubectl delete job image-puller -n iris-mlops || echo "Failed to cleanup pre-pull job"
@@ -389,18 +387,18 @@ jobs:
           # Get service details
           kubectl get services -n iris-mlops
 
-          echo "# 🚀 Kubernetes Deployment Status" >> report.md
+          echo "# Kubernetes Deployment Status" >> report.md
           echo "" >> report.md
-          echo "## 📦 Docker Image" >> report.md
+          echo "## Docker Image" >> report.md
           echo "- **Image**: \`${{ env.IMAGE_TAG }}\`" >> report.md
           echo "- **Registry**: Google Container Registry (GCR)" >> report.md
           echo "" >> report.md
-          echo "## ☸️ Kubernetes Deployment" >> report.md
+          echo "## Kubernetes Deployment" >> report.md
           echo '```' >> report.md
           kubectl get pods -n iris-mlops >> report.md
           echo '```' >> report.md
           echo "" >> report.md
-          echo "## 🔗 Service Information" >> report.md
+          echo "## Service Information" >> report.md
           echo '```' >> report.md
           kubectl get services -n iris-mlops >> report.md
           echo '```' >> report.md
@@ -448,16 +446,38 @@ jobs:
             echo "Running concurrent scaling tests on deployed GCP API..."
             echo "API URL: http://$EXTERNAL_IP"
             
-            # Run GCP-optimized concurrent scaling test
-            echo "Running GCP concurrent scaling test..."
-            python3 testing/gcp_concurrent_scaling_test.py --url http://$EXTERNAL_IP --light-test > concurrent_test_results.txt 2>&1 || echo "Concurrent test completed with warnings"
+            # Install wrk for benchmarking (fix installation)
+            echo "Installing wrk for benchmarking..."
+            sudo apt-get update -qq
+            sudo apt-get install -y build-essential libssl-dev git zlib1g-dev
+            cd /tmp
+            git clone https://github.com/wg/wrk.git
+            cd wrk
+            make
+            sudo cp wrk /usr/local/bin/
+            cd -
+            echo "wrk installation completed"
             
-            # Run batch processing test if endpoint is available
+            # Verify wrk installation
+            wrk --version || echo "wrk installation verification failed"
+            
+            # Run GCP-optimized concurrent scaling test with proper user counts
+            echo "Running GCP concurrent scaling test..."
+            python3 testing/gcp_concurrent_scaling_test.py --url http://$EXTERNAL_IP > concurrent_test_results.txt 2>&1 || echo "Concurrent test completed with warnings"
+            
+            # Test batch processing capabilities (should be available with enhanced API)
             echo "Testing batch processing capabilities..."
-            if curl -f --max-time 10 http://$EXTERNAL_IP/predict_batch > /dev/null 2>&1; then
+            curl -f --max-time 10 http://$EXTERNAL_IP/predict_batch \
+              -H "Content-Type: application/json" \
+              -d '{"features_list":[{"sepal_length":5.1,"sepal_width":3.5,"petal_length":1.4,"petal_width":0.2}]}' > /dev/null 2>&1
+            
+            if [ $? -eq 0 ]; then
+              echo "Batch endpoint available, running batch comparison..."
               python3 testing/batch_comparison.py http://$EXTERNAL_IP > batch_test_results.txt 2>&1 || echo "Batch test completed with warnings"
             else
-              echo "Batch endpoint not available, skipping batch tests" > batch_test_results.txt
+              echo "Batch endpoint not available, API may not be enhanced version" > batch_test_results.txt
+              echo "Testing with basic batch data..." >> batch_test_results.txt
+              python3 testing/batch_comparison.py http://$EXTERNAL_IP >> batch_test_results.txt 2>&1 || echo "Batch test attempted"
             fi
             
             # Run API features comparison
@@ -468,20 +488,36 @@ jobs:
             echo "Running comprehensive GCP API analysis..."
             python3 testing/gcp_api_comparison.py --url http://$EXTERNAL_IP > gcp_api_analysis.txt 2>&1 || echo "GCP API analysis completed"
             
-            # Install and run wrk benchmarking for comparison
-            echo "Installing wrk for benchmarking comparison..."
-            sudo apt-get update && sudo apt-get install -y wrk || echo "wrk installation failed, skipping wrk tests"
-            
+            # Create and run wrk comparison script
             echo "Running wrk benchmarking comparison..."
-            python3 testing/wrk_load_test.py --url http://$EXTERNAL_IP > wrk_comparison_results.txt 2>&1 || echo "wrk comparison completed"
+            echo '#!/bin/bash' > wrk_test.sh
+            echo 'API_URL=$1' >> wrk_test.sh
+            echo 'echo "wrk Benchmarking Results for $API_URL"' >> wrk_test.sh
+            echo 'echo "======================================"' >> wrk_test.sh
+            echo 'echo "Light Load Test (25 connections, 10 seconds):"' >> wrk_test.sh
+            echo 'wrk -t4 -c25 -d10s --timeout 30s $API_URL/health 2>/dev/null || echo "Light load test failed"' >> wrk_test.sh
+            echo 'echo "Medium Load Test (50 connections, 10 seconds):"' >> wrk_test.sh
+            echo 'wrk -t8 -c50 -d10s --timeout 30s $API_URL/health 2>/dev/null || echo "Medium load test failed"' >> wrk_test.sh
+            echo 'echo "Heavy Load Test (100 connections, 10 seconds):"' >> wrk_test.sh
+            echo 'wrk -t12 -c100 -d10s --timeout 30s $API_URL/health 2>/dev/null || echo "Heavy load test failed"' >> wrk_test.sh
+            echo 'echo "wrk benchmarking completed"' >> wrk_test.sh
+            chmod +x wrk_test.sh
+            ./wrk_test.sh http://$EXTERNAL_IP > wrk_comparison_results.txt 2>&1 || echo "wrk comparison completed with warnings"
             
-            # Run basic load test as backup
-            echo "Running additional load test..."
-            python3 testing/concurrent_load_test.py --url http://$EXTERNAL_IP --users 3 --requests 3 > additional_load_test.txt 2>&1 || echo "Additional load test completed"
+            # Run load tests with proper user counts (25/50/100)
+            echo "Running load tests with proper user counts..."
+            echo "Light Load Test (25 users, 4 requests each):" > additional_load_test.txt
+            python3 testing/concurrent_load_test.py --url http://$EXTERNAL_IP --users 25 --requests 4 >> additional_load_test.txt 2>&1 || echo "Light load test completed"
+            
+            echo "Medium Load Test (50 users, 2 requests each):" >> additional_load_test.txt
+            python3 testing/concurrent_load_test.py --url http://$EXTERNAL_IP --users 50 --requests 2 >> additional_load_test.txt 2>&1 || echo "Medium load test completed"
+            
+            echo "Heavy Load Test (100 users, 1 request each):" >> additional_load_test.txt
+            python3 testing/concurrent_load_test.py --url http://$EXTERNAL_IP --users 100 --requests 1 >> additional_load_test.txt 2>&1 || echo "Heavy load test completed"
             
             # Add concurrent scaling results to report
             echo "" >> report.md
-            echo "## 🚀 Concurrent Scaling Test Results" >> report.md
+            echo "## Concurrent Scaling Test Results" >> report.md
             echo "" >> report.md
             echo "### Load Testing Results" >> report.md
             echo '```' >> report.md
@@ -513,15 +549,15 @@ jobs:
             echo '```' >> report.md
             
             echo "" >> report.md
-            echo "## 🌐 API Testing" >> report.md
+            echo "## API Testing Summary" >> report.md
             echo "- **External IP**: \`$EXTERNAL_IP\`" >> report.md
-            echo "- **Health Check**: ✅ Passed" >> report.md
-            echo "- **Prediction Test**: ✅ Passed" >> report.md
-            echo "- **Concurrent Load Test**: ✅ Completed" >> report.md
-            echo "- **Batch Processing Test**: ✅ Completed" >> report.md
-            echo "- **GCP Performance Analysis**: ✅ Completed" >> report.md
-            echo "- **API Architecture Analysis**: ✅ Completed" >> report.md
-            echo "- **wrk Benchmarking Comparison**: ✅ Completed" >> report.md
+            echo "- **Health Check**: Passed" >> report.md
+            echo "- **Prediction Test**: Passed" >> report.md
+            echo "- **Concurrent Load Test**: Completed" >> report.md
+            echo "- **Batch Processing Test**: Completed" >> report.md
+            echo "- **GCP Performance Analysis**: Completed" >> report.md
+            echo "- **API Architecture Analysis**: Completed" >> report.md
+            echo "- **wrk Benchmarking Comparison**: Completed" >> report.md
             echo "- **API Documentation**: http://$EXTERNAL_IP/docs" >> report.md
             
             # Generate comprehensive final report
@@ -531,7 +567,7 @@ jobs:
             # Add final report summary to main report
             if [ -f "FINAL_PIPELINE_REPORT.md" ]; then
               echo "" >> report.md
-              echo "## 📋 Comprehensive Pipeline Report" >> report.md
+              echo "## Comprehensive Pipeline Report" >> report.md
               echo "A detailed final report has been generated: \`FINAL_PIPELINE_REPORT.md\`" >> report.md
               echo "" >> report.md
               echo "### Quick Summary" >> report.md
@@ -575,7 +611,7 @@ jobs:
           if [ ! -z "${{ env.CLUSTER_NAME }}" ] && [ ! -z "${{ env.CLUSTER_ZONE }}" ]; then
             echo "Deleting cluster ${{ env.CLUSTER_NAME }} in zone ${{ env.CLUSTER_ZONE }}..."
             gcloud container clusters delete ${{ env.CLUSTER_NAME }} --zone=${{ env.CLUSTER_ZONE }} --project=citric-aleph-461515-j9 --quiet --async
-            echo "✅ Cluster deletion initiated (async)"
+            echo "Cluster deletion initiated (async)"
           else
             echo "No cluster information found to clean up"
           fi

@@ -23,6 +23,7 @@ COPY requirements-minimal.txt .
 RUN pip install --no-cache-dir -r requirements-minimal.txt
 
 # Copy application code
+COPY iris_api_enhanced.py .
 COPY iris_api.py .
 COPY iris_pipeline.py .
 
@@ -41,5 +42,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Run the application
-CMD ["uvicorn", "iris_api:app", "--host", "0.0.0.0", "--port", "8000"] 
+# Run the enhanced application
+CMD ["uvicorn", "iris_api_enhanced:app", "--host", "0.0.0.0", "--port", "8000"] 

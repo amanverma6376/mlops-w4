@@ -287,15 +287,15 @@ async def main():
     if args.light_test:
         # Light tests for CI environment
         test_configs = [
-            {"name": "Light Load", "users": 3, "requests": 3},
-            {"name": "Moderate Load", "users": 5, "requests": 2}
+            {"name": "Light Load", "users": 25, "requests": 2},
+            {"name": "Moderate Load", "users": 50, "requests": 1}
         ]
     else:
         # Full test suite
         test_configs = [
-            {"name": "Light Load", "users": 5, "requests": 5},
-            {"name": "Moderate Load", "users": 10, "requests": 3},
-            {"name": "Heavy Load", "users": 15, "requests": 2}
+            {"name": "Light Load", "users": 25, "requests": 4},
+            {"name": "Moderate Load", "users": 50, "requests": 2},
+            {"name": "Heavy Load", "users": 100, "requests": 1}
         ]
     
     print(f"\nRunning Concurrent Load Tests:")
