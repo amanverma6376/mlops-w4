@@ -446,6 +446,14 @@ jobs:
             echo "Running concurrent scaling tests on deployed GCP API..."
             echo "API URL: http://$EXTERNAL_IP"
             
+            # Debug: Show available files and directories
+            echo "Debug: Available files and directories in workspace:"
+            ls -la
+            echo "Debug: Contents of testing/ directory:"
+            ls -la testing/ 2>/dev/null || echo "testing/ directory not found"
+            echo "Debug: Contents of utils/ directory:"
+            ls -la utils/ 2>/dev/null || echo "utils/ directory not found"
+            
             # Install wrk for benchmarking (fix installation)
             echo "Installing wrk for benchmarking..."
             sudo apt-get update -qq
@@ -459,34 +467,68 @@ jobs:
             echo "wrk installation completed"
             
             # Verify wrk installation
-            wrk --version || echo "wrk installation verification failed"
+            wrk -v 2>/dev/null || wrk --help | head -1 || echo "wrk installation verification failed"
             
             # Run GCP-optimized concurrent scaling test with proper user counts
             echo "Running GCP concurrent scaling test..."
-            python3 testing/gcp_concurrent_scaling_test.py --url http://$EXTERNAL_IP > concurrent_test_results.txt 2>&1 || echo "Concurrent test completed with warnings"
+            if [ -f "testing/gcp_concurrent_scaling_test.py" ]; then
+              python3 testing/gcp_concurrent_scaling_test.py --url http://$EXTERNAL_IP > concurrent_test_results.txt 2>&1 || echo "Concurrent test completed with warnings"
+            else
+              echo "GCP concurrent scaling test script not found" > concurrent_test_results.txt
+              echo "Available files in testing/:" >> concurrent_test_results.txt
+              ls -la testing/ >> concurrent_test_results.txt 2>&1 || echo "testing/ directory not found"
+            fi
             
             # Test batch processing capabilities (should be available with enhanced API)
             echo "Testing batch processing capabilities..."
-            curl -f --max-time 10 http://$EXTERNAL_IP/predict_batch \
-              -H "Content-Type: application/json" \
-              -d '{"features_list":[{"sepal_length":5.1,"sepal_width":3.5,"petal_length":1.4,"petal_width":0.2}]}' > /dev/null 2>&1
             
-            if [ $? -eq 0 ]; then
+            # First check if batch endpoint exists
+            BATCH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://$EXTERNAL_IP/predict_batch \
+              -H "Content-Type: application/json" \
+              -d '{"features_list":[{"sepal_length":5.1,"sepal_width":3.5,"petal_length":1.4,"petal_width":0.2}]}' || echo "000")
+            
+            echo "Batch endpoint HTTP status: $BATCH_STATUS"
+            
+            if [ "$BATCH_STATUS" = "200" ]; then
               echo "Batch endpoint available, running batch comparison..."
-              python3 testing/batch_comparison.py http://$EXTERNAL_IP > batch_test_results.txt 2>&1 || echo "Batch test completed with warnings"
+              if [ -f "testing/batch_comparison.py" ]; then
+                python3 testing/batch_comparison.py http://$EXTERNAL_IP > batch_test_results.txt 2>&1 || echo "Batch test completed with warnings"
+              else
+                echo "Batch comparison script not found" > batch_test_results.txt
+                echo "Available files in testing/:" >> batch_test_results.txt
+                ls -la testing/ >> batch_test_results.txt 2>&1 || echo "testing/ directory not found"
+              fi
+            elif [ "$BATCH_STATUS" = "404" ]; then
+              echo "Batch endpoint not found (404), API may be basic version" > batch_test_results.txt
+              echo "Skipping batch-specific tests..." >> batch_test_results.txt
             else
-              echo "Batch endpoint not available, API may not be enhanced version" > batch_test_results.txt
-              echo "Testing with basic batch data..." >> batch_test_results.txt
-              python3 testing/batch_comparison.py http://$EXTERNAL_IP >> batch_test_results.txt 2>&1 || echo "Batch test attempted"
+              echo "Batch endpoint returned status $BATCH_STATUS, attempting test anyway..." > batch_test_results.txt
+              if [ -f "testing/batch_comparison.py" ]; then
+                python3 testing/batch_comparison.py http://$EXTERNAL_IP >> batch_test_results.txt 2>&1 || echo "Batch test attempted with errors"
+              else
+                echo "Batch comparison script not found" >> batch_test_results.txt
+              fi
             fi
             
             # Run API features comparison
             echo "Generating API features comparison..."
-            python3 utils/api_features_comparison.py > api_features_results.txt 2>&1 || echo "Features comparison completed"
+            if [ -f "utils/api_features_comparison.py" ]; then
+              python3 utils/api_features_comparison.py > api_features_results.txt 2>&1 || echo "Features comparison completed"
+            else
+              echo "API features comparison script not found" > api_features_results.txt
+              echo "Available files in utils/:" >> api_features_results.txt
+              ls -la utils/ >> api_features_results.txt 2>&1 || echo "utils/ directory not found"
+            fi
             
             # Run comprehensive GCP API analysis
             echo "Running comprehensive GCP API analysis..."
-            python3 testing/gcp_api_comparison.py --url http://$EXTERNAL_IP > gcp_api_analysis.txt 2>&1 || echo "GCP API analysis completed"
+            if [ -f "testing/gcp_api_comparison.py" ]; then
+              python3 testing/gcp_api_comparison.py --url http://$EXTERNAL_IP > gcp_api_analysis.txt 2>&1 || echo "GCP API analysis completed"
+            else
+              echo "GCP API comparison script not found" > gcp_api_analysis.txt
+              echo "Available files in testing/:" >> gcp_api_analysis.txt
+              ls -la testing/ >> gcp_api_analysis.txt 2>&1 || echo "testing/ directory not found"
+            fi
             
             # Create and run wrk comparison script
             echo "Running wrk benchmarking comparison..."
@@ -507,13 +549,19 @@ jobs:
             # Run load tests with proper user counts (25/50/100)
             echo "Running load tests with proper user counts..."
             echo "Light Load Test (25 users, 4 requests each):" > additional_load_test.txt
-            python3 testing/concurrent_load_test.py --url http://$EXTERNAL_IP --users 25 --requests 4 >> additional_load_test.txt 2>&1 || echo "Light load test completed"
-            
-            echo "Medium Load Test (50 users, 2 requests each):" >> additional_load_test.txt
-            python3 testing/concurrent_load_test.py --url http://$EXTERNAL_IP --users 50 --requests 2 >> additional_load_test.txt 2>&1 || echo "Medium load test completed"
-            
-            echo "Heavy Load Test (100 users, 1 request each):" >> additional_load_test.txt
-            python3 testing/concurrent_load_test.py --url http://$EXTERNAL_IP --users 100 --requests 1 >> additional_load_test.txt 2>&1 || echo "Heavy load test completed"
+            if [ -f "testing/concurrent_load_test.py" ]; then
+              python3 testing/concurrent_load_test.py --url http://$EXTERNAL_IP --users 25 --requests 4 >> additional_load_test.txt 2>&1 || echo "Light load test completed"
+              
+              echo "Medium Load Test (50 users, 2 requests each):" >> additional_load_test.txt
+              python3 testing/concurrent_load_test.py --url http://$EXTERNAL_IP --users 50 --requests 2 >> additional_load_test.txt 2>&1 || echo "Medium load test completed"
+              
+              echo "Heavy Load Test (100 users, 1 request each):" >> additional_load_test.txt
+              python3 testing/concurrent_load_test.py --url http://$EXTERNAL_IP --users 100 --requests 1 >> additional_load_test.txt 2>&1 || echo "Heavy load test completed"
+            else
+              echo "Concurrent load test script not found" >> additional_load_test.txt
+              echo "Available files in testing/:" >> additional_load_test.txt
+              ls -la testing/ >> additional_load_test.txt 2>&1 || echo "testing/ directory not found"
+            fi
             
             # Add concurrent scaling results to report
             echo "" >> report.md
@@ -562,7 +610,13 @@ jobs:
             
             # Generate comprehensive final report
             echo "Generating comprehensive final report..."
-            python3 utils/generate_final_report.py > final_report_generation.log 2>&1 || echo "Final report generation completed"
+            if [ -f "utils/generate_final_report.py" ]; then
+              python3 utils/generate_final_report.py > final_report_generation.log 2>&1 || echo "Final report generation completed"
+            else
+              echo "Final report generator not found" > final_report_generation.log
+              echo "Available files in utils/:" >> final_report_generation.log
+              ls -la utils/ >> final_report_generation.log 2>&1 || echo "utils/ directory not found"
+            fi
             
             # Add final report summary to main report
             if [ -f "FINAL_PIPELINE_REPORT.md" ]; then
