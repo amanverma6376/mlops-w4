@@ -54,7 +54,6 @@ class IrisMLflowPipeline:
             # Clean up any corrupted database and retry
             try:
                 import shutil
-                import os
                 if os.path.exists('./mlflow_tracking'):
                     shutil.rmtree('./mlflow_tracking')
                     logger.info("Cleaned corrupted MLflow database")
