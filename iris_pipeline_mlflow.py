@@ -39,7 +39,7 @@ class IrisMLflowPipeline:
         artifact_location = f"gs://{BUCKET_NAME}/mlflow-artifacts"
         
         try:
-
+            # Try to get existing experiment
             experiment = mlflow.get_experiment_by_name(experiment_name)
             if experiment is None:
                 # Create new experiment with GCS artifact location
@@ -51,8 +51,27 @@ class IrisMLflowPipeline:
             logger.info(f"MLflow experiment '{experiment_name}' set up successfully")
         except Exception as e:
             logger.warning(f"Could not set artifact location to GCS: {e}")
-            # Fallback to default artifact location
-            mlflow.set_experiment(experiment_name)
+            # Clean up any corrupted database and retry
+            try:
+                import shutil
+                import os
+                if os.path.exists('./mlflow_tracking'):
+                    shutil.rmtree('./mlflow_tracking')
+                    logger.info("Cleaned corrupted MLflow database")
+                
+                # Reinitialize MLflow tracking
+                mlflow_dir = "./mlflow_tracking"
+                os.makedirs(mlflow_dir, exist_ok=True)
+                tracking_uri = f"sqlite:///{mlflow_dir}/mlflow.db"
+                mlflow.set_tracking_uri(tracking_uri)
+                
+                # Create experiment with fallback
+                mlflow.set_experiment(experiment_name)
+                logger.info(f"MLflow experiment '{experiment_name}' initialized with clean database")
+            except Exception as retry_error:
+                logger.error(f"Failed to initialize MLflow even after cleanup: {retry_error}")
+                # Final fallback - use default tracking
+                mlflow.set_experiment(experiment_name)
         
     def load_data(self):
         """Load and prepare the Iris dataset."""

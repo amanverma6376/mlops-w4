@@ -60,8 +60,15 @@ jobs:
         python -c "import pandas, numpy, sklearn, mlflow; print('All packages imported successfully')"
         python -c "from data_poisoning import DataPoisoning; print('Custom modules imported successfully')"
     
-    - name: Create data directory and dataset
+    - name: Clean MLflow and create data directory
       run: |
+        # Clean any existing MLflow database to prevent migration issues
+        rm -rf mlflow_tracking/
+        rm -rf mlruns/
+        rm -rf .mlflow/
+        rm -f *.db
+        
+        # Create fresh data directory
         mkdir -p data
         python -c "
         import pandas as pd
