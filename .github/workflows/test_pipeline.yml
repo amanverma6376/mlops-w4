@@ -57,7 +57,13 @@ jobs:
 
       - name: Train model with MLflow and run tests
         run: |
-          # Set up MLflow tracking directory
+          # Clean any existing MLflow database to prevent migration issues
+          rm -rf mlflow_tracking/
+          rm -rf mlruns/
+          rm -rf .mlflow/
+          rm -f *.db
+          
+          # Set up fresh MLflow tracking directory
           mkdir -p mlflow_tracking
 
           # Train model with hyperparameter tuning (reduce trials for CI)
