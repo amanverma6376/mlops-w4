@@ -1,6 +1,6 @@
-# 🚀 Continuous Deployment Pipeline Demo Guide
+# Continuous Deployment Pipeline Demo Guide
 
-## 📋 Overview
+## Overview
 
 This guide demonstrates a complete **Continuous Deployment (CD) pipeline** for the IRIS ML model using:
 
@@ -12,19 +12,19 @@ This guide demonstrates a complete **Continuous Deployment (CD) pipeline** for t
 
 ---
 
-## 🎯 Demo Objectives
+## Demo Objectives
 
 **Show a complete MLOps pipeline that:**
-1. ✅ Trains and validates ML models
-2. ✅ Creates a production-ready API
-3. ✅ Containerizes the application with Docker
-4. ✅ Deploys to Kubernetes with auto-scaling
-5. ✅ Integrates with CI/CD for automated deployments
-6. ✅ Provides monitoring and health checks
+1. Trains and validates ML models
+2. Creates a production-ready API
+3. Containerizes the application with Docker
+4. Deploys to Kubernetes with auto-scaling
+5. Integrates with CI/CD for automated deployments
+6. Provides monitoring and health checks
 
 ---
 
-## 🛠️ Prerequisites
+## Prerequisites
 
 Before running the demo, ensure you have:
 
@@ -156,29 +156,29 @@ curl http://$EXTERNAL_IP/docs
 
 ---
 
-## 🔄 CI/CD Pipeline Features
+## CI/CD Pipeline Features
 
 ### GitHub Actions Workflow
 The `.github/workflows/test_pipeline.yml` includes:
 
 **Continuous Integration:**
-- ✅ Automated testing with pytest
-- ✅ Data validation checks
-- ✅ Model training with MLFlow
-- ✅ Hyperparameter tuning
+- Automated testing with pytest
+- Data validation checks
+- Model training with MLFlow
+- Hyperparameter tuning
 
 **Continuous Deployment:**
-- ✅ Docker image building
-- ✅ Push to Google Container Registry
-- ✅ Kubernetes deployment
-- ✅ API health checks
-- ✅ CML report generation
+- Docker image building
+- Push to Google Container Registry
+- Kubernetes deployment
+- API health checks
+- CML report generation
 
 **CML Reporting:**
-- ✅ Test results
-- ✅ Model metrics
-- ✅ Deployment status
-- ✅ API endpoints
+- Test results
+- Model metrics
+- Deployment status
+- API endpoints
 
 ---
 
@@ -213,7 +213,7 @@ docker push gcr.io/citric-aleph-461515-j9/iris-api:latest
 
 ---
 
-## ☸️ Kubernetes Configuration
+## Kubernetes Configuration
 
 ### Deployment Features
 - **3 replicas** for high availability
@@ -240,7 +240,7 @@ kubectl logs -l app=iris-api -n iris-mlops
 
 ---
 
-## 📊 Monitoring & Validation
+## Monitoring & Validation
 
 ### Health Checks
 ```bash
@@ -329,7 +329,7 @@ docker system prune -f
 
 ---
 
-## 🚀 Next Steps
+## Next Steps
 
 **After the demo, you can:**
 1. **Extend the model**: Add more features or algorithms
@@ -371,7 +371,7 @@ docker login gcr.io
 
 ---
 
-## 📋 Checklist for Video
+## Checklist for Video
 
 - [ ] All prerequisites installed
 - [ ] Google Cloud project configured

@@ -1,4 +1,6 @@
-#!/home/jupyter/.venv/bin/python3
+#!/bin/sh
+'''exec' "/Users/aman.v/Desktop/Personal Files/IITM/May_25 Term/MLOPs/Code/W6/mlops-w4/.venv/bin/python3.11" "$0" "$@"
+' '''
 # -*- coding: utf-8 -*-
 import re
 import sys

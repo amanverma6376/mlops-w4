@@ -28,7 +28,7 @@ def test_api_connectivity(api_url: str):
     try:
         response = requests.get(f"{api_url}/", timeout=10)
         results["api_accessible"] = True
-        print(f"✅ API accessible (Status: {response.status_code})")
+        print(f"API accessible (Status: {response.status_code})")
         
         if response.status_code == 200:
             try:
@@ -38,7 +38,7 @@ def test_api_connectivity(api_url: str):
             except:
                 print("   API returned non-JSON response")
     except Exception as e:
-        print(f"❌ API not accessible: {e}")
+        print(f"API not accessible: {e}")
         return results
     
     # Test health endpoint
@@ -47,12 +47,12 @@ def test_api_connectivity(api_url: str):
         if response.status_code == 200:
             results["health_endpoint"] = True
             health_info = response.json()
-            print(f"✅ Health endpoint working")
+            print(f"Health endpoint working")
             print(f"   Health Info: {json.dumps(health_info, indent=2)}")
         else:
-            print(f"❌ Health endpoint failed (Status: {response.status_code})")
+            print(f"Health endpoint failed (Status: {response.status_code})")
     except Exception as e:
-        print(f"❌ Health endpoint error: {e}")
+        print(f"Health endpoint error: {e}")
     
     # Test prediction endpoint
     try:
@@ -66,27 +66,27 @@ def test_api_connectivity(api_url: str):
         if response.status_code == 200:
             results["prediction_endpoint"] = True
             prediction_result = response.json()
-            print(f"✅ Prediction endpoint working")
+            print(f"Prediction endpoint working")
             print(f"   Prediction: {prediction_result.get('prediction', 'unknown')}")
         else:
-            print(f"❌ Prediction endpoint failed (Status: {response.status_code})")
+            print(f"Prediction endpoint failed (Status: {response.status_code})")
             print(f"   Response: {response.text[:200]}")
     except Exception as e:
-        print(f"❌ Prediction endpoint error: {e}")
+        print(f"Prediction endpoint error: {e}")
     
     # Summary
     print("\n" + "=" * 50)
     print("CONNECTIVITY TEST SUMMARY")
     print("=" * 50)
-    print(f"API Accessible: {'✅' if results['api_accessible'] else '❌'}")
-    print(f"Health Endpoint: {'✅' if results['health_endpoint'] else '❌'}")
-    print(f"Prediction Endpoint: {'✅' if results['prediction_endpoint'] else '❌'}")
+    print(f"API Accessible: {'PASS' if results['api_accessible'] else 'FAIL'}")
+    print(f"Health Endpoint: {'PASS' if results['health_endpoint'] else 'FAIL'}")
+    print(f"Prediction Endpoint: {'PASS' if results['prediction_endpoint'] else 'FAIL'}")
     
     if all(results[key] for key in ["api_accessible", "health_endpoint", "prediction_endpoint"]):
-        print("\n🎉 All connectivity tests passed! API is ready for load testing.")
+        print("\nAll connectivity tests passed! API is ready for load testing.")
         return True
     else:
-        print("\n⚠️  Some connectivity tests failed. Load testing may not work properly.")
+        print("\nSome connectivity tests failed. Load testing may not work properly.")
         return False
 
 if __name__ == "__main__":

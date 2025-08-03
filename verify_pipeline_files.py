@@ -19,13 +19,13 @@ def check_file_exists(filepath, description):
 
 def main():
     """Main verification function"""
-    print("🔍 Verifying Pipeline Files for GCP Deployment")
+    print("Verifying Pipeline Files for GCP Deployment")
     print("=" * 60)
     
     all_files_present = True
     
     # Core API files
-    print("\n📁 Core API Files:")
+    print("\nCore API Files:")
     files_to_check = [
         ("iris_api.py", "Basic API"),
         ("iris_api_enhanced.py", "Enhanced API"),
@@ -39,7 +39,7 @@ def main():
             all_files_present = False
     
     # Testing files
-    print("\n🧪 Testing Files:")
+    print("\nTesting Files:")
     testing_files = [
         ("testing/gcp_concurrent_scaling_test.py", "GCP Concurrent Scaling Test"),
         ("testing/gcp_api_comparison.py", "GCP API Comparison"),
@@ -58,7 +58,7 @@ def main():
             all_files_present = False
     
     # Utility files
-    print("\n🛠️ Utility Files:")
+    print("\nUtility Files:")
     util_files = [
         ("utils/api_features_comparison.py", "API Features Comparison"),
         ("utils/generate_final_report.py", "Final Report Generator")
@@ -69,7 +69,7 @@ def main():
             all_files_present = False
     
     # Infrastructure files
-    print("\n🏗️ Infrastructure Files:")
+    print("\nInfrastructure Files:")
     infra_files = [
         (".github/workflows/test_pipeline.yml", "GitHub Actions Workflow"),
         ("k8s/deployment.yaml", "Kubernetes Deployment"),
@@ -82,21 +82,21 @@ def main():
     
     # Summary
     print("\n" + "=" * 60)
-    print("📋 VERIFICATION SUMMARY")
+    print("VERIFICATION SUMMARY")
     print("=" * 60)
     
     if all_files_present:
-        print("🎉 ALL FILES PRESENT!")
-        print("✅ Pipeline is ready for GCP deployment")
-        print("✅ GitHub Actions workflow should run successfully")
-        print("\n🚀 Next Steps:")
+        print("ALL FILES PRESENT!")
+        print("Pipeline is ready for GCP deployment")
+        print("GitHub Actions workflow should run successfully")
+        print("\nNext Steps:")
         print("   1. Commit and push changes to trigger GitHub Actions")
         print("   2. Monitor the workflow execution")
         print("   3. Check the generated reports and artifacts")
     else:
-        print("❌ SOME FILES ARE MISSING!")
-        print("⚠️  Please ensure all required files are in place")
-        print("\n🔧 To fix missing files:")
+        print("SOME FILES ARE MISSING!")
+        print("Please ensure all required files are in place")
+        print("\nTo fix missing files:")
         print("   - Check if files were moved to different locations")
         print("   - Recreate missing files if necessary")
         print("   - Verify file permissions")

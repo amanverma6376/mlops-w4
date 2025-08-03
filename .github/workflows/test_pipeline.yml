@@ -289,8 +289,12 @@ jobs:
           rm -f /tmp/gcr-key.json
 
           # Update deployment image
-          echo "Using Docker image: ${{ env.IMAGE_TAG }}"
-          sed -i "s|gcr.io/citric-aleph-461515-j9/iris-api:latest|${{ env.IMAGE_TAG }}|g" k8s/deployment.yaml
+          if [ -n "$IMAGE_TAG" ]; then
+            echo "Using Docker image: $IMAGE_TAG"
+            sed -i "s|gcr.io/citric-aleph-461515-j9/iris-api:latest|$IMAGE_TAG|g" k8s/deployment.yaml
+          else
+            echo "IMAGE_TAG not available, using default image"
+          fi
 
           # Apply Kubernetes manifests
           kubectl apply -f k8s/deployment.yaml -n iris-mlops
@@ -310,7 +314,11 @@ jobs:
           echo "# Kubernetes Deployment Status" >> report.md
           echo "" >> report.md
           echo "## Docker Image" >> report.md
-          echo "- **Image**: \`${{ env.IMAGE_TAG }}\`" >> report.md
+          if [ -n "$IMAGE_TAG" ]; then
+            echo "- **Image**: \`$IMAGE_TAG\`" >> report.md
+          else
+            echo "- **Image**: \`gcr.io/citric-aleph-461515-j9/iris-api:latest\`" >> report.md
+          fi
           echo "- **Registry**: Google Container Registry (GCR)" >> report.md
           echo "" >> report.md
           echo "## Kubernetes Deployment" >> report.md
@@ -348,7 +356,7 @@ jobs:
             for i in {1..20}; do
               echo "Attempt $i/20: Testing API readiness..."
               if curl -f --max-time 10 http://$EXTERNAL_IP/health >/dev/null 2>&1; then
-                echo "✅ API is ready!"
+                echo "API is ready!"
                 API_READY=true
                 break
               else
@@ -378,7 +386,7 @@ jobs:
               echo "Running comprehensive API connectivity test..."
               python3 utils/test_api_connectivity.py http://$EXTERNAL_IP || echo "Connectivity test completed with warnings"
             else
-              echo "❌ API failed to become ready after 5 minutes"
+              echo "API failed to become ready after 5 minutes"
               echo "Debugging information:"
               echo "1. Pod status:"
               kubectl get pods -n iris-mlops -o wide
@@ -401,13 +409,13 @@ jobs:
               # Run concurrent scaling tests with light test option for CI
               echo "Running concurrent scaling tests..."
               if python3 testing/gcp_concurrent_scaling_test.py --url http://$EXTERNAL_IP --light-test > concurrent_test_results.txt 2>&1; then
-                echo "✅ Concurrent scaling test completed successfully"
+                echo "Concurrent scaling test completed successfully"
               else
-                echo "❌ Concurrent scaling test failed, generating dynamic fallback..."
+                echo "Concurrent scaling test failed, generating dynamic fallback..."
                 if python3 utils/generate_dynamic_report.py http://$EXTERNAL_IP > concurrent_test_results.txt 2>&1; then
-                  echo "✅ Dynamic fallback report generated successfully"
+                  echo "Dynamic fallback report generated successfully"
                 else
-                  echo "❌ All tests failed, creating basic fallback..."
+                  echo "All tests failed, creating basic fallback..."
                   echo "GCP Concurrent Scaling Test" > concurrent_test_results.txt
                   echo "========================================" >> concurrent_test_results.txt
                   echo "API URL: http://$EXTERNAL_IP" >> concurrent_test_results.txt
@@ -418,7 +426,7 @@ jobs:
                 fi
               fi
             else
-              echo "❌ Skipping tests because API is not ready"
+              echo "Skipping tests because API is not ready"
               echo "GCP Concurrent Scaling Test" > concurrent_test_results.txt
               echo "========================================" >> concurrent_test_results.txt
               echo "API URL: http://$EXTERNAL_IP" >> concurrent_test_results.txt
@@ -436,13 +444,13 @@ jobs:
             if [ "$API_READY" = true ]; then
               echo "Testing batch processing..."
               if python3 testing/batch_comparison.py http://$EXTERNAL_IP > batch_test_results.txt 2>&1; then
-                echo "✅ Batch processing test completed successfully"
+                echo "Batch processing test completed successfully"
               else
-                echo "❌ Batch processing test failed, using simple fallback..."
+                echo "Batch processing test failed, using simple fallback..."
                 if python3 utils/simple_batch_test.py http://$EXTERNAL_IP > batch_test_results.txt 2>&1; then
-                  echo "✅ Simple batch test completed successfully"
+                  echo "Simple batch test completed successfully"
                 else
-                  echo "❌ All batch tests failed"
+                  echo "All batch tests failed"
                   echo "Batch Processing Performance Comparison" > batch_test_results.txt
                   echo "==================================================" >> batch_test_results.txt
                   echo "Generated: $(date -u)" >> batch_test_results.txt
@@ -453,7 +461,7 @@ jobs:
                 fi
               fi
             else
-              echo "❌ Skipping batch tests because API is not ready"
+              echo "Skipping batch tests because API is not ready"
               echo "Batch Processing Performance Comparison" > batch_test_results.txt
               echo "==================================================" >> batch_test_results.txt
               echo "Tests skipped because API was not ready." >> batch_test_results.txt
@@ -462,13 +470,13 @@ jobs:
             # Run API features comparison (this doesn't need API to be ready)
             echo "Generating API features comparison..."
             if python3 utils/api_features_comparison.py > api_features_results.txt 2>&1; then
-              echo "✅ API features comparison completed successfully"
+              echo "API features comparison completed successfully"
             else
-              echo "❌ API features comparison failed, using simple fallback..."
+              echo "API features comparison failed, using simple fallback..."
               if python3 utils/simple_api_features.py > api_features_results.txt 2>&1; then
-                echo "✅ Simple API features comparison generated successfully"
+                echo "Simple API features comparison generated successfully"
               else
-                echo "❌ All API features comparison methods failed"
+                echo "All API features comparison methods failed"
                 echo "API FEATURES AND ARCHITECTURE COMPARISON" > api_features_results.txt
                 echo "============================================================" >> api_features_results.txt
                 echo "Comparison generation failed. Scripts may have errors." >> api_features_results.txt
@@ -479,9 +487,9 @@ jobs:
             if [ "$API_READY" = true ]; then
               echo "Running GCP API analysis..."
               if python3 testing/gcp_api_comparison.py --url http://$EXTERNAL_IP > gcp_api_analysis.txt 2>&1; then
-                echo "✅ GCP API analysis completed successfully"
+                echo "GCP API analysis completed successfully"
               else
-                echo "❌ GCP API analysis failed, creating fallback..."
+                echo "GCP API analysis failed, creating fallback..."
                 echo "GCP API Performance Analysis" > gcp_api_analysis.txt
                 echo "========================================" >> gcp_api_analysis.txt
                 echo "API URL: http://$EXTERNAL_IP" >> gcp_api_analysis.txt
@@ -491,7 +499,7 @@ jobs:
                 echo "API was accessible but analysis script encountered errors." >> gcp_api_analysis.txt
               fi
             else
-              echo "❌ Skipping GCP API analysis because API is not ready"
+              echo "Skipping GCP API analysis because API is not ready"
               echo "GCP API Performance Analysis" > gcp_api_analysis.txt
               echo "========================================" >> gcp_api_analysis.txt
               echo "Tests skipped because API was not ready." >> gcp_api_analysis.txt
@@ -523,9 +531,9 @@ jobs:
             if [ "$API_READY" = true ]; then
               echo "Running additional load tests..."
               if python3 testing/concurrent_load_test.py --url http://$EXTERNAL_IP --users 25 --requests 4 > additional_load_test.txt 2>&1; then
-                echo "✅ Additional load test completed successfully"
+                echo "Additional load test completed successfully"
               else
-                echo "❌ Additional load test failed"
+                echo "Additional load test failed"
                 echo "Starting concurrent test:" > additional_load_test.txt
                 echo "   Endpoint: /predict" >> additional_load_test.txt
                 echo "   Concurrent users: 25" >> additional_load_test.txt
@@ -537,14 +545,14 @@ jobs:
                 echo "API was accessible but load test encountered errors." >> additional_load_test.txt
               fi
             else
-              echo "❌ Skipping additional load tests because API is not ready"
+              echo "Skipping additional load tests because API is not ready"
               echo "Starting concurrent test:" > additional_load_test.txt
               echo "   Tests skipped because API was not ready." >> additional_load_test.txt
             fi
             
             # Add results to report
             echo "" >> report.md
-            echo "## 🚀 Concurrent Scaling Test Results" >> report.md
+            echo "## Concurrent Scaling Test Results" >> report.md
             echo '```' >> report.md
             if [ -f "concurrent_test_results.txt" ]; then
               cat concurrent_test_results.txt >> report.md
@@ -556,8 +564,8 @@ jobs:
             echo "" >> report.md
             echo "## API Testing Summary" >> report.md
             echo "- **External IP**: \`$EXTERNAL_IP\`" >> report.md
-            echo "- **Health Check**: ✅ Passed" >> report.md
-            echo "- **Prediction Test**: ✅ Passed" >> report.md
+            echo "- **Health Check**: Passed" >> report.md
+            echo "- **Prediction Test**: Passed" >> report.md
             echo "- **API Documentation**: http://$EXTERNAL_IP/docs" >> report.md
           else
             echo "External IP not available. Service is still provisioning." >> report.md
@@ -570,12 +578,12 @@ jobs:
           echo "Generating comprehensive final report..."
           
           # Create comprehensive final report using actual test results
-          echo "# 🚀 Concurrent Inference Pipeline - Complete Test Results" > FINAL_PIPELINE_REPORT.md
+          echo "# Concurrent Inference Pipeline - Complete Test Results" > FINAL_PIPELINE_REPORT.md
           echo "" >> FINAL_PIPELINE_REPORT.md
           echo "**Generated**: $(date -u)" >> FINAL_PIPELINE_REPORT.md
           echo "**Pipeline**: MLOps Concurrent Scaling Assignment" >> FINAL_PIPELINE_REPORT.md
           echo "" >> FINAL_PIPELINE_REPORT.md
-          echo "## 📊 Executive Summary" >> FINAL_PIPELINE_REPORT.md
+          echo "## Executive Summary" >> FINAL_PIPELINE_REPORT.md
           echo "" >> FINAL_PIPELINE_REPORT.md
           echo "This report demonstrates the successful implementation and testing of a concurrent" >> FINAL_PIPELINE_REPORT.md
           echo "inference pipeline with comprehensive performance analysis on GCP infrastructure." >> FINAL_PIPELINE_REPORT.md
@@ -583,7 +591,7 @@ jobs:
           
           # Add test results sections dynamically
           if [ -f "concurrent_test_results.txt" ]; then
-            echo "## 🧪 GCP Concurrent Scaling Test Results" >> FINAL_PIPELINE_REPORT.md
+            echo "## GCP Concurrent Scaling Test Results" >> FINAL_PIPELINE_REPORT.md
             echo "" >> FINAL_PIPELINE_REPORT.md
             echo '```' >> FINAL_PIPELINE_REPORT.md
             cat concurrent_test_results.txt >> FINAL_PIPELINE_REPORT.md
@@ -592,7 +600,7 @@ jobs:
           fi
           
           if [ -f "batch_test_results.txt" ]; then
-            echo "## 📊 Batch Processing Analysis" >> FINAL_PIPELINE_REPORT.md
+            echo "## Batch Processing Analysis" >> FINAL_PIPELINE_REPORT.md
             echo "" >> FINAL_PIPELINE_REPORT.md
             echo '```' >> FINAL_PIPELINE_REPORT.md
             cat batch_test_results.txt >> FINAL_PIPELINE_REPORT.md
@@ -601,7 +609,7 @@ jobs:
           fi
           
           if [ -f "gcp_api_analysis.txt" ]; then
-            echo "## 🔍 GCP API Performance Analysis" >> FINAL_PIPELINE_REPORT.md
+            echo "## GCP API Performance Analysis" >> FINAL_PIPELINE_REPORT.md
             echo "" >> FINAL_PIPELINE_REPORT.md
             echo '```' >> FINAL_PIPELINE_REPORT.md
             cat gcp_api_analysis.txt >> FINAL_PIPELINE_REPORT.md
@@ -610,7 +618,7 @@ jobs:
           fi
           
           if [ -f "api_features_results.txt" ]; then
-            echo "## 🏗️ API Architecture Comparison" >> FINAL_PIPELINE_REPORT.md
+            echo "## API Architecture Comparison" >> FINAL_PIPELINE_REPORT.md
             echo "" >> FINAL_PIPELINE_REPORT.md
             echo '```' >> FINAL_PIPELINE_REPORT.md
             cat api_features_results.txt >> FINAL_PIPELINE_REPORT.md
@@ -628,7 +636,7 @@ jobs:
           fi
           
           if [ -f "additional_load_test.txt" ]; then
-            echo "## 🚀 Additional Load Testing" >> FINAL_PIPELINE_REPORT.md
+            echo "## Additional Load Testing" >> FINAL_PIPELINE_REPORT.md
             echo "" >> FINAL_PIPELINE_REPORT.md
             echo '```' >> FINAL_PIPELINE_REPORT.md
             cat additional_load_test.txt >> FINAL_PIPELINE_REPORT.md
@@ -637,7 +645,7 @@ jobs:
           fi
           
           # Add conclusion
-          echo "## 🎉 Conclusion" >> FINAL_PIPELINE_REPORT.md
+          echo "## Conclusion" >> FINAL_PIPELINE_REPORT.md
           echo "" >> FINAL_PIPELINE_REPORT.md
           echo "This project successfully demonstrates the implementation of a production-ready" >> FINAL_PIPELINE_REPORT.md
           echo "concurrent inference pipeline with comprehensive performance testing. The pipeline" >> FINAL_PIPELINE_REPORT.md
@@ -645,10 +653,10 @@ jobs:
           echo "of performance characteristics on GCP infrastructure." >> FINAL_PIPELINE_REPORT.md
           echo "" >> FINAL_PIPELINE_REPORT.md
           echo "Key achievements:" >> FINAL_PIPELINE_REPORT.md
-          echo "- ✅ Automated GCP deployment with Kubernetes" >> FINAL_PIPELINE_REPORT.md
-          echo "- ✅ Dynamic performance testing and analysis" >> FINAL_PIPELINE_REPORT.md
-          echo "- ✅ Comprehensive reporting with actual results" >> FINAL_PIPELINE_REPORT.md
-          echo "- ✅ Robust error handling and fallback mechanisms" >> FINAL_PIPELINE_REPORT.md
+          echo "- Automated GCP deployment with Kubernetes" >> FINAL_PIPELINE_REPORT.md
+          echo "- Dynamic performance testing and analysis" >> FINAL_PIPELINE_REPORT.md
+          echo "- Comprehensive reporting with actual results" >> FINAL_PIPELINE_REPORT.md
+          echo "- Robust error handling and fallback mechanisms" >> FINAL_PIPELINE_REPORT.md
           echo "" >> FINAL_PIPELINE_REPORT.md
           echo "The complete CI/CD pipeline ensures reliable deployment and testing on GCP" >> FINAL_PIPELINE_REPORT.md
           echo "infrastructure, with automated performance analysis and reporting." >> FINAL_PIPELINE_REPORT.md
@@ -945,11 +953,10 @@ jobs:
         if: always()
         run: |
           # Clean up the unique cluster created for this run
-          echo "Cleaning up cluster: ${{ env.CLUSTER_NAME }}"
-
-          if [ ! -z "${{ env.CLUSTER_NAME }}" ] && [ ! -z "${{ env.CLUSTER_ZONE }}" ]; then
-            echo "Deleting cluster ${{ env.CLUSTER_NAME }} in zone ${{ env.CLUSTER_ZONE }}..."
-            gcloud container clusters delete ${{ env.CLUSTER_NAME }} --zone=${{ env.CLUSTER_ZONE }} --project=citric-aleph-461515-j9 --quiet --async
+          if [ -n "$CLUSTER_NAME" ] && [ -n "$CLUSTER_ZONE" ]; then
+            echo "Cleaning up cluster: $CLUSTER_NAME"
+            echo "Deleting cluster $CLUSTER_NAME in zone $CLUSTER_ZONE..."
+            gcloud container clusters delete "$CLUSTER_NAME" --zone="$CLUSTER_ZONE" --project=citric-aleph-461515-j9 --quiet --async
             echo "Cluster deletion initiated (async)"
           else
             echo "No cluster information found to clean up"

@@ -1,8 +1,8 @@
-# 🚀 GCP Deployment Guide - Concurrent Inference Pipeline
+# GCP Deployment Guide - Concurrent Inference Pipeline
 
-## 📋 Pre-Deployment Checklist
+## Pre-Deployment Checklist
 
-### ✅ Verify Local Setup
+### Verify Local Setup
 ```bash
 # Run verification script
 python3 verify_pipeline_files.py
@@ -11,7 +11,7 @@ python3 verify_pipeline_files.py
 python3 test_complete_pipeline.py
 ```
 
-### ✅ Required Files Structure
+### Required Files Structure
 ```
 mlops-w4/
 ├── .github/workflows/test_pipeline.yml    # GitHub Actions workflow
@@ -33,7 +33,7 @@ mlops-w4/
     └── generate_final_report.py          # Report generation
 ```
 
-## 🚀 Deployment Process
+## Deployment Process
 
 ### Step 1: Commit and Push
 ```bash
@@ -52,13 +52,13 @@ git push origin main
 2. Click on "Actions" tab
 3. Watch the "Iris MLflow Pipeline" workflow execution
 4. Monitor each step:
-   - ✅ Model Training with MLflow
-   - ✅ Docker Build and Push to GCR
-   - ✅ GKE Cluster Creation
-   - ✅ Kubernetes Deployment
-   - ✅ Concurrent Scaling Tests
-   - ✅ Performance Analysis
-   - ✅ Report Generation
+   - Model Training with MLflow
+- Docker Build and Push to GCR
+- GKE Cluster Creation
+- Kubernetes Deployment
+- Concurrent Scaling Tests
+- Performance Analysis
+- Report Generation
 
 ### Step 3: Review Results
 The workflow will automatically generate:
@@ -68,16 +68,16 @@ The workflow will automatically generate:
 - **Batch Processing**: Efficiency analysis
 - **Comprehensive Report**: Complete pipeline analysis
 
-## 📊 Expected Results
+## Expected Results
 
 ### GitHub Actions Workflow Output
 ```
-✅ Model Training: MLflow experiments completed
-✅ Docker Build: Image pushed to GCR
-✅ GKE Deployment: Cluster created, API deployed
-✅ External IP: API accessible at http://EXTERNAL_IP
-✅ Concurrent Tests: Performance analysis completed
-✅ Reports Generated: Comprehensive analysis available
+- Model Training: MLflow experiments completed
+- Docker Build: Image pushed to GCR
+- GKE Deployment: Cluster created, API deployed
+- External IP: API accessible at http://EXTERNAL_IP
+- Concurrent Tests: Performance analysis completed
+- Reports Generated: Comprehensive analysis available
 ```
 
 ### Performance Analysis Results
@@ -100,11 +100,11 @@ Performance Assessment: EXCELLENT
 ### API Comparison Results
 ```
 Enhanced API Features Detected:
-✅ Async request handling
-✅ Thread pool execution
-✅ Batch processing
-✅ Enhanced error handling
-✅ Performance monitoring
+- Async request handling
+- Thread pool execution
+- Batch processing
+- Enhanced error handling
+- Performance monitoring
 
 Architecture: PRODUCTION-READY
 Reliability: EXCELLENT
@@ -112,7 +112,7 @@ Response Time: EXCELLENT
 Throughput: EXCELLENT
 ```
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### Common Issues and Solutions
 
@@ -162,7 +162,7 @@ curl -X POST http://EXTERNAL_IP/predict \
   -d '{"sepal_length": 5.1, "sepal_width": 3.5, "petal_length": 1.4, "petal_width": 0.2}'
 ```
 
-## 📈 Performance Optimization
+## Performance Optimization
 
 ### Scaling Recommendations
 Based on test results, consider:
@@ -182,9 +182,9 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/cont
 kubectl autoscale deployment iris-api -n iris-mlops --cpu-percent=70 --min=1 --max=10
 ```
 
-## 🎯 Success Criteria
+## Success Criteria
 
-### ✅ Assignment Completion Checklist
+### Assignment Completion Checklist
 - [x] **Concurrent Inference**: Multiple users handled simultaneously
 - [x] **Bottleneck Analysis**: Performance issues identified and resolved
 - [x] **GCP Deployment**: Automated deployment to Google Cloud
@@ -192,14 +192,14 @@ kubectl autoscale deployment iris-api -n iris-mlops --cpu-percent=70 --min=1 --m
 - [x] **Comparison Analysis**: Enhanced vs Basic API comparison
 - [x] **Automated Reporting**: CI/CD integration with results
 
-### ✅ Performance Targets Met
+### Performance Targets Met
 - [x] **Response Time**: < 100ms average (achieved: ~55ms)
 - [x] **Success Rate**: > 95% (achieved: 99.4%)
 - [x] **Concurrent Users**: Support 10+ users (achieved: 15+ users)
 - [x] **Throughput**: > 50 RPS (achieved: 90+ RPS)
 - [x] **Reliability**: Production-ready architecture
 
-## 🎉 Next Steps
+## Next Steps
 
 ### Immediate Actions
 1. **Monitor Deployment**: Watch GitHub Actions execution
@@ -223,6 +223,6 @@ kubectl autoscale deployment iris-api -n iris-mlops --cpu-percent=70 --min=1 --m
 
 ---
 
-**🚀 Your concurrent inference pipeline is now ready for production deployment on GCP!**
+**Your concurrent inference pipeline is now ready for production deployment on GCP!**
 
 The automated workflow will handle everything from model training to performance analysis, providing comprehensive insights into your API's concurrent processing capabilities.

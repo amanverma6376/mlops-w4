@@ -40,7 +40,7 @@ class PipelineIntegrationTest:
     
     def start_enhanced_api(self) -> bool:
         """Start the enhanced API server"""
-        print("🚀 Starting Enhanced API server...")
+        print("Starting Enhanced API server...")
         
         try:
             self.api_process = subprocess.Popen([
@@ -52,16 +52,16 @@ class PipelineIntegrationTest:
                 try:
                     response = requests.get(f"{self.api_url}/health", timeout=1)
                     if response.status_code == 200:
-                        print("✅ Enhanced API started successfully")
+                        print("Enhanced API started successfully")
                         return True
                 except:
                     time.sleep(1)
             
-            print("❌ Enhanced API failed to start")
+            print("Enhanced API failed to start")
             return False
             
         except Exception as e:
-            print(f"❌ Error starting Enhanced API: {e}")
+            print(f"Error starting Enhanced API: {e}")
             return False
     
     def test_model_training(self) -> bool:
@@ -74,33 +74,33 @@ class PipelineIntegrationTest:
             ], capture_output=True, text=True, timeout=60)
             
             if result.returncode == 0 and os.path.exists("model.pkl"):
-                print("✅ Model training successful")
+                print("Model training successful")
                 return True
             else:
-                print(f"❌ Model training failed: {result.stderr}")
+                print(f"Model training failed: {result.stderr}")
                 return False
                 
         except Exception as e:
-            print(f"❌ Model training error: {e}")
+            print(f"Model training error: {e}")
             return False
     
     def test_api_functionality(self) -> bool:
         """Test basic API functionality"""
-        print("\n🔧 Testing API functionality...")
+        print("\nTesting API functionality...")
         
         try:
             # Test health endpoint
             response = requests.get(f"{self.api_url}/health", timeout=5)
             if response.status_code != 200:
-                print("❌ Health endpoint failed")
+                print("Health endpoint failed")
                 return False
             
             health_data = response.json()
             if not health_data.get("model_loaded"):
-                print("❌ Model not loaded in API")
+                print("Model not loaded in API")
                 return False
             
-            print("✅ Health endpoint working")
+            print("Health endpoint working")
             
             # Test prediction endpoint
             test_data = {
@@ -112,28 +112,28 @@ class PipelineIntegrationTest:
             
             response = requests.post(f"{self.api_url}/predict", json=test_data, timeout=5)
             if response.status_code != 200:
-                print("❌ Prediction endpoint failed")
+                print("Prediction endpoint failed")
                 return False
             
             pred_data = response.json()
             if "prediction" not in pred_data:
-                print("❌ Prediction response invalid")
+                print("Prediction response invalid")
                 return False
             
-            print("✅ Prediction endpoint working")
+            print("Prediction endpoint working")
             
             # Test batch endpoint if available
             batch_data = {"features_list": [test_data, test_data]}
             response = requests.post(f"{self.api_url}/predict_batch", json=batch_data, timeout=5)
             if response.status_code == 200:
-                print("✅ Batch endpoint working")
+                print("Batch endpoint working")
             else:
-                print("⚠️  Batch endpoint not available (this is OK for basic API)")
+                print("Batch endpoint not available (this is OK for basic API)")
             
             return True
             
         except Exception as e:
-            print(f"❌ API functionality test error: {e}")
+            print(f"API functionality test error: {e}")
             return False
     
     def test_concurrent_scaling(self) -> bool:
@@ -150,22 +150,22 @@ class PipelineIntegrationTest:
             ], capture_output=True, text=True, timeout=60)
             
             if result.returncode == 0:
-                print("✅ Concurrent load test successful")
+                print("Concurrent load test successful")
                 
                 # Check for key metrics in output
                 output = result.stdout
                 if "LOAD TEST RESULTS" in output and "Success Rate" in output:
-                    print("✅ Performance metrics generated")
+                    print("Performance metrics generated")
                     return True
                 else:
-                    print("⚠️  Concurrent test ran but metrics unclear")
+                    print("Concurrent test ran but metrics unclear")
                     return True
             else:
-                print(f"❌ Concurrent load test failed: {result.stderr}")
+                print(f"Concurrent load test failed: {result.stderr}")
                 return False
                 
         except Exception as e:
-            print(f"❌ Concurrent scaling test error: {e}")
+            print(f"Concurrent scaling test error: {e}")
             return False
     
     def test_batch_comparison(self) -> bool:
@@ -181,22 +181,22 @@ class PipelineIntegrationTest:
             if result.returncode == 0:
                 output = result.stdout
                 if "Batch Processing Performance Comparison" in output:
-                    print("✅ Batch comparison test successful")
+                    print("Batch comparison test successful")
                     return True
                 else:
-                    print("⚠️  Batch comparison ran but results unclear")
+                    print("Batch comparison ran but results unclear")
                     return True
             else:
-                print(f"❌ Batch comparison failed: {result.stderr}")
+                print(f"Batch comparison failed: {result.stderr}")
                 return False
                 
         except Exception as e:
-            print(f"❌ Batch comparison test error: {e}")
+            print(f"Batch comparison test error: {e}")
             return False
     
     def test_api_features_comparison(self) -> bool:
         """Test API features comparison"""
-        print("\n🏗️ Testing API features comparison...")
+        print("\nTesting API features comparison...")
         
         try:
             result = subprocess.run([
@@ -206,22 +206,22 @@ class PipelineIntegrationTest:
             if result.returncode == 0:
                 output = result.stdout
                 if "API FEATURES AND ARCHITECTURE COMPARISON" in output:
-                    print("✅ API features comparison successful")
+                    print("API features comparison successful")
                     return True
                 else:
-                    print("⚠️  API features comparison ran but output unclear")
+                    print("API features comparison ran but output unclear")
                     return True
             else:
-                print(f"❌ API features comparison failed: {result.stderr}")
+                print(f"API features comparison failed: {result.stderr}")
                 return False
                 
         except Exception as e:
-            print(f"❌ API features comparison error: {e}")
+            print(f"API features comparison error: {e}")
             return False
     
     def run_complete_test(self) -> bool:
         """Run the complete pipeline test"""
-        print("🧪 Complete Pipeline Integration Test")
+        print("Complete Pipeline Integration Test")
         print("=" * 60)
         
         all_tests_passed = True
@@ -273,24 +273,24 @@ def main():
         success = tester.run_complete_test()
         
         print("\n" + "=" * 60)
-        print("📋 COMPLETE PIPELINE TEST SUMMARY")
+        print("COMPLETE PIPELINE TEST SUMMARY")
         print("=" * 60)
         
         if success:
-            print("🎉 ALL PIPELINE TESTS PASSED!")
-            print("✅ Model training works")
-            print("✅ Enhanced API starts and responds")
-            print("✅ Concurrent scaling tests work")
-            print("✅ Batch processing comparison works")
-            print("✅ API features comparison works")
-            print("\n🚀 Pipeline is ready for GCP deployment!")
+            print("ALL PIPELINE TESTS PASSED!")
+            print("Model training works")
+            print("Enhanced API starts and responds")
+            print("Concurrent scaling tests work")
+            print("Batch processing comparison works")
+            print("API features comparison works")
+            print("\nPipeline is ready for GCP deployment!")
             print("   - Commit and push to trigger GitHub Actions")
             print("   - Monitor workflow execution")
             print("   - Check generated reports")
         else:
-            print("❌ SOME PIPELINE TESTS FAILED!")
-            print("⚠️  Please fix issues before GCP deployment")
-            print("\n🔧 Common fixes:")
+            print("SOME PIPELINE TESTS FAILED!")
+            print("Please fix issues before GCP deployment")
+            print("\nCommon fixes:")
             print("   - Check Python dependencies")
             print("   - Verify file permissions")
             print("   - Check API port availability")
@@ -298,7 +298,7 @@ def main():
         return success
         
     except Exception as e:
-        print(f"\n❌ Pipeline test failed with error: {e}")
+        print(f"\nPipeline test failed with error: {e}")
         return False
     finally:
         tester.cleanup()

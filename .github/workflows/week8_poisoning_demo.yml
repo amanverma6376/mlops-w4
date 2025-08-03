@@ -1,0 +1,221 @@
+name: Week 8 Data Poisoning Demo
+
+on:
+  workflow_dispatch:
+    inputs:
+      quick_mode:
+        description: 'Run in quick mode (faster execution)'
+        required: false
+        default: true
+        type: boolean
+      poison_rates:
+        description: 'Poison rates to test (comma-separated, e.g., 0.05,0.10,0.50)'
+        required: false
+        default: '0.05,0.10'
+        type: string
+      models:
+        description: 'Models to test (comma-separated)'
+        required: false
+        default: 'logistic_regression'
+        type: string
+  
+  # Can also trigger on push to specific branch for automatic testing
+  # push:
+  #   branches: [ week8-poisoning ]
+
+jobs:
+  data-poisoning-analysis:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9]  # Test on multiple Python versions
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-poisoning.txt
+        pip install pytest pytest-cov  # For additional testing
+    
+    - name: Verify installation
+      run: |
+        python -c "import pandas, numpy, sklearn, mlflow; print('All packages imported successfully')"
+        python -c "from data_poisoning import DataPoisoning; print('Custom modules imported successfully')"
+    
+    - name: Create data directory and dataset
+      run: |
+        mkdir -p data
+        python -c "
+        import pandas as pd
+        from sklearn.datasets import load_iris
+        import os
+        
+        if not os.path.exists('data/iris.csv'):
+            iris = load_iris()
+            df = pd.DataFrame(iris.data, columns=iris.feature_names)
+            df['species'] = iris.target_names[iris.target]
+            df.to_csv('data/iris.csv', index=False)
+            print('Created iris.csv dataset')
+            print(f'Dataset shape: {df.shape}')
+        else:
+            df = pd.read_csv('data/iris.csv')
+            print(f'Using existing dataset with shape: {df.shape}')
+        "
+    
+    - name: Run Data Poisoning Analysis
+      run: |
+        # Determine parameters based on inputs
+        QUICK_FLAG=""
+        if [ "${{ github.event.inputs.quick_mode }}" == "true" ]; then
+          QUICK_FLAG="--quick"
+        fi
+        
+        RATES_FLAG=""
+        if [ -n "${{ github.event.inputs.poison_rates }}" ]; then
+          RATES_FLAG="--rates ${{ github.event.inputs.poison_rates }}"
+        fi
+        
+        MODELS_FLAG=""
+        if [ -n "${{ github.event.inputs.models }}" ]; then
+          MODELS_FLAG="--models ${{ github.event.inputs.models }}"
+        fi
+        
+        # Run the poisoning demo
+        echo "Running Week 8 poisoning demo with parameters:"
+        echo "Quick mode: ${{ github.event.inputs.quick_mode }}"
+        echo "Poison rates: ${{ github.event.inputs.poison_rates }}"
+        echo "Models: ${{ github.event.inputs.models }}"
+        
+        python week8_poisoning_demo.py $QUICK_FLAG $RATES_FLAG $MODELS_FLAG
+    
+    - name: Run comprehensive pipeline (if not quick mode)
+      if: github.event.inputs.quick_mode != 'true'
+      run: |
+        echo "Running comprehensive poisoning pipeline..."
+        python iris_poisoning_pipeline.py
+    
+    - name: Generate summary statistics
+      run: |
+        python -c "
+        import os
+        import json
+        import glob
+        
+        # Find results files
+        result_files = glob.glob('poisoning_results/*.json')
+        demo_files = glob.glob('week8_demo_results/*')
+        
+        print('=== WEEK 8 POISONING ANALYSIS SUMMARY ===')
+        print(f'Results files generated: {len(result_files)}')
+        print(f'Demo files generated: {len(demo_files)}')
+        
+        # List all generated files
+        if result_files:
+            print('\nPoisoning Results:')
+            for f in result_files:
+                print(f'  - {f}')
+        
+        if demo_files:
+            print('\nDemo Results:')
+            for f in demo_files:
+                print(f'  - {f}')
+        
+        # Check MLflow tracking
+        if os.path.exists('mlflow_tracking'):
+            print(f'\nMLflow tracking directory exists')
+            mlflow_files = glob.glob('mlflow_tracking/**/*', recursive=True)
+            print(f'MLflow files: {len([f for f in mlflow_files if os.path.isfile(f)])}')
+        
+        print('\n=== ANALYSIS COMPLETE ===')
+        "
+    
+    - name: Upload analysis results
+      uses: actions/upload-artifact@v3
+      with:
+        name: week8-poisoning-results-py${{ matrix.python-version }}
+        path: |
+          poisoning_results/
+          week8_demo_results/
+          mlflow_tracking/
+          week8_demo.log
+        retention-days: 30
+    
+    - name: Upload performance plots
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-plots-py${{ matrix.python-version }}
+        path: |
+          week8_demo_results/*.png
+          poisoning_results/*.png
+        retention-days: 30
+    
+    - name: Comment on PR (if applicable)
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          
+          // Check if demo log exists
+          let logContent = '';
+          try {
+            logContent = fs.readFileSync('week8_demo.log', 'utf8');
+          } catch (e) {
+            logContent = 'Demo log not found';
+          }
+          
+          const comment = `
+          ## Week 8 Data Poisoning Analysis Results
+          
+          The data poisoning analysis has been completed successfully!
+          
+          ### Configuration
+          - **Python Version**: ${{ matrix.python-version }}
+          - **Quick Mode**: ${{ github.event.inputs.quick_mode }}
+          - **Poison Rates**: ${{ github.event.inputs.poison_rates }}
+          - **Models**: ${{ github.event.inputs.models }}
+          
+          ### Results
+          Analysis artifacts have been uploaded and are available in the workflow run.
+          
+          ### Key Findings
+          The analysis demonstrates:
+          - Impact of data poisoning at various levels
+          - Effectiveness of detection methods
+          - Performance degradation patterns
+          - Mitigation strategy recommendations
+          
+          Check the uploaded artifacts for detailed results and visualizations.
+          `;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+    
+    - name: Publish demo status
+      run: |
+        echo "Week 8 Data Poisoning Demo completed successfully!"
+        echo "Results saved and uploaded as artifacts"
+        echo "Check the Actions tab for detailed logs and downloadable results"

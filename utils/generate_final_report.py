@@ -23,21 +23,21 @@ def generate_final_report():
     """Generate comprehensive final report"""
     
     report = []
-    report.append("# 🚀 Concurrent Inference Pipeline - Complete Test Results")
+    report.append("# Concurrent Inference Pipeline - Complete Test Results")
     report.append("")
     report.append(f"**Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}")
     report.append(f"**Pipeline**: MLOps Concurrent Scaling Assignment")
     report.append("")
     
     # Executive Summary
-    report.append("## 📊 Executive Summary")
+    report.append("## Executive Summary")
     report.append("")
     report.append("This report demonstrates the successful implementation and testing of a concurrent")
     report.append("inference pipeline with comprehensive performance analysis on GCP infrastructure.")
     report.append("")
     
     # Test Results Overview
-    report.append("## 🧪 Test Results Overview")
+    report.append("## Test Results Overview")
     report.append("")
     
     test_files = [
@@ -68,11 +68,11 @@ def generate_final_report():
         else:
             report.append(f"### {title}")
             report.append("")
-            report.append(f"⚠️ Test results not available ({filename} not found)")
+            report.append(f"Test results not available ({filename} not found)")
             report.append("")
     
     # Performance Metrics Summary
-    report.append("## 📈 Performance Metrics Summary")
+    report.append("## Performance Metrics Summary")
     report.append("")
     
     # Try to extract key metrics from test results
@@ -116,11 +116,11 @@ def generate_final_report():
         report.append("")
     
     if not metrics_found:
-        report.append("⚠️ Detailed performance metrics not available in test results")
+        report.append("Detailed performance metrics not available in test results")
         report.append("")
     
     # Architecture Analysis
-    report.append("## 🏗️ Architecture Analysis")
+    report.append("## Architecture Analysis")
     report.append("")
     
     api_features = read_file_safe("api_features_results.txt")
@@ -139,9 +139,9 @@ def generate_final_report():
         report.append("")
     
     # Key Achievements
-    report.append("## 🎯 Key Achievements")
+    report.append("## Key Achievements")
     report.append("")
-    report.append("### ✅ Successfully Implemented")
+    report.append("### Successfully Implemented")
     report.append("- Concurrent inference pipeline with async processing")
     report.append("- Thread pool execution for CPU-bound model inference")
     report.append("- Batch processing optimization for improved throughput")
@@ -150,7 +150,7 @@ def generate_final_report():
     report.append("- Real-time performance monitoring and analysis")
     report.append("")
     
-    report.append("### 📊 Performance Improvements Demonstrated")
+    report.append("### Performance Improvements Demonstrated")
     report.append("- Enhanced API shows superior concurrent user handling")
     report.append("- Batch processing provides significant throughput gains")
     report.append("- Async architecture prevents request blocking")
@@ -159,7 +159,7 @@ def generate_final_report():
     report.append("")
     
     # Technical Implementation
-    report.append("## 🛠️ Technical Implementation")
+    report.append("## Technical Implementation")
     report.append("")
     report.append("### Core Technologies")
     report.append("- **FastAPI**: Async web framework with automatic OpenAPI docs")
@@ -180,7 +180,7 @@ def generate_final_report():
     report.append("")
     
     # Deployment Information
-    report.append("## 🚀 Deployment Information")
+    report.append("## Deployment Information")
     report.append("")
     report.append("### GCP Infrastructure")
     report.append("- **Platform**: Google Kubernetes Engine (GKE)")
@@ -217,7 +217,7 @@ def generate_final_report():
     report.append("")
     
     # Conclusion
-    report.append("## 🎉 Conclusion")
+    report.append("## Conclusion")
     report.append("")
     report.append("This project successfully demonstrates the implementation of a production-ready")
     report.append("concurrent inference pipeline with comprehensive performance testing. The enhanced")
@@ -238,14 +238,14 @@ def generate_final_report():
     print("\n" + "="*60)
     print("CONCURRENT INFERENCE PIPELINE - FINAL SUMMARY")
     print("="*60)
-    print("✅ Enhanced API with async processing implemented")
-    print("✅ Concurrent scaling tests completed")
-    print("✅ Batch processing optimization verified")
-    print("✅ GCP deployment with Kubernetes successful")
-    print("✅ Performance analysis and reporting automated")
-    print("✅ CI/CD pipeline with comprehensive testing")
+    print("Enhanced API with async processing implemented")
+    print("Concurrent scaling tests completed")
+    print("Batch processing optimization verified")
+    print("GCP deployment with Kubernetes successful")
+    print("Performance analysis and reporting automated")
+    print("CI/CD pipeline with comprehensive testing")
     print("")
-    print("📊 Key Results:")
+    print("Key Results:")
     
     # Try to extract key numbers
     if "Average Success Rate:" in gcp_analysis:
@@ -254,11 +254,11 @@ def generate_final_report():
                 print(f"   {line.strip()}")
     
     print("")
-    print("🎯 Assignment Objectives Met:")
-    print("   - Concurrent inference pipeline scaling ✅")
-    print("   - Performance bottleneck identification ✅")
-    print("   - GCP deployment and testing ✅")
-    print("   - Comprehensive analysis and reporting ✅")
+    print("Assignment Objectives Met:")
+    print("   - Concurrent inference pipeline scaling")
+    print("   - Performance bottleneck identification")
+    print("   - GCP deployment and testing")
+    print("   - Comprehensive analysis and reporting")
 
 if __name__ == "__main__":
     generate_final_report()

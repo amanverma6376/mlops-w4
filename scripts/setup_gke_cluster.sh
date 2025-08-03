@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 🚀 GKE Cluster Setup Script for Iris MLOps Pipeline
+# GKE Cluster Setup Script for Iris MLOps Pipeline
 # This script sets up a Google Kubernetes Engine cluster for the demonstration
 
 set -e
@@ -12,7 +12,7 @@ ZONE="us-central1-a"
 REGION="us-central1"
 NAMESPACE="iris-mlops"
 
-echo "🚀 Setting up GKE Cluster for Iris MLOps Pipeline"
+echo "Setting up GKE Cluster for Iris MLOps Pipeline"
 echo "=================================================="
 
 # Authenticate with Google Cloud
@@ -20,17 +20,17 @@ echo "🔐 Authenticating with Google Cloud..."
 gcloud auth login || echo "Already authenticated"
 
 # Set project
-echo "📋 Setting project to $PROJECT_ID..."
+echo "Setting project to $PROJECT_ID..."
 gcloud config set project $PROJECT_ID
 
 # Enable required APIs
-echo "⚙️  Enabling required Google Cloud APIs..."
+echo "Enabling required Google Cloud APIs..."
 gcloud services enable container.googleapis.com
 gcloud services enable containerregistry.googleapis.com
 gcloud services enable cloudbuild.googleapis.com
 
 # Create GKE cluster
-echo "☸️  Creating GKE cluster '$CLUSTER_NAME'..."
+echo "Creating GKE cluster '$CLUSTER_NAME'..."
 if gcloud container clusters describe $CLUSTER_NAME --zone=$ZONE 2>/dev/null; then
     echo "Cluster $CLUSTER_NAME already exists"
 else
@@ -46,7 +46,7 @@ else
         --enable-autoupgrade \
         --addons=HorizontalPodAutoscaling,HttpLoadBalancing
     
-    echo "✅ GKE cluster created successfully!"
+    echo "GKE cluster created successfully!"
 fi
 
 # Get cluster credentials
@@ -67,7 +67,7 @@ kubectl create secret docker-registry gcr-json-key \
     --namespace=$NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 
 # Verify cluster setup
-echo "✅ Verifying cluster setup..."
+echo "Verifying cluster setup..."
 echo "Cluster info:"
 kubectl cluster-info
 
@@ -78,12 +78,12 @@ echo "Namespaces:"
 kubectl get namespaces
 
 echo ""
-echo "🎉 GKE Cluster setup complete!"
+echo "GKE Cluster setup complete!"
 echo "📍 Cluster: $CLUSTER_NAME"
 echo "📍 Zone: $ZONE"
 echo "📍 Namespace: $NAMESPACE"
 echo ""
-echo "🔧 Next steps:"
+echo "Next steps:"
 echo "1. Run 'bash scripts/build_and_deploy.sh' to build and deploy the API"
 echo "2. Use 'kubectl get services -n $NAMESPACE' to check service status"
 echo "3. Access the API documentation at http://<EXTERNAL_IP>/docs" 

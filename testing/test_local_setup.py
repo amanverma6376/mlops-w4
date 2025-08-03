@@ -13,10 +13,10 @@ import time
 def check_file_exists(filename, description):
     """Check if a file exists"""
     if os.path.exists(filename):
-        print(f"✅ {description}: {filename}")
+        print(f"FOUND {description}: {filename}")
         return True
     else:
-        print(f"❌ {description}: {filename} - NOT FOUND")
+        print(f"MISSING {description}: {filename} - NOT FOUND")
         return False
 
 def check_python_imports():
@@ -39,9 +39,9 @@ def check_python_imports():
     for package in required_packages:
         try:
             __import__(package)
-            print(f"✅ {package}")
+            print(f"INSTALLED {package}")
         except ImportError:
-            print(f"❌ {package} - NOT AVAILABLE")
+            print(f"MISSING {package} - NOT AVAILABLE")
             missing_packages.append(package)
     
     return len(missing_packages) == 0
@@ -53,13 +53,13 @@ def test_model_training():
         result = subprocess.run([sys.executable, 'iris_pipeline.py'], 
                               capture_output=True, text=True, timeout=30)
         if result.returncode == 0:
-            print("✅ Model training successful")
+            print("Model training successful")
             return True
         else:
-            print(f"❌ Model training failed: {result.stderr}")
+            print(f"Model training failed: {result.stderr}")
             return False
     except Exception as e:
-        print(f"❌ Model training error: {e}")
+        print(f"Model training error: {e}")
         return False
 
 def test_api_scripts():
@@ -84,28 +84,28 @@ def test_api_scripts():
                 result = subprocess.run([sys.executable, '-m', 'py_compile', script], 
                                       capture_output=True, text=True)
                 if result.returncode == 0:
-                    print(f"✅ {script} - syntax OK")
+                    print(f"VALID {script} - syntax OK")
                 else:
-                    print(f"❌ {script} - syntax error: {result.stderr}")
+                    print(f"INVALID {script} - syntax error: {result.stderr}")
                     all_good = False
             except Exception as e:
-                print(f"❌ {script} - error: {e}")
+                print(f"ERROR {script} - error: {e}")
                 all_good = False
         else:
-            print(f"❌ {script} - file not found")
+            print(f"MISSING {script} - file not found")
             all_good = False
     
     return all_good
 
 def main():
     """Main test function"""
-    print("🧪 Local Setup Test for Concurrent Inference Pipeline")
+    print("Local Setup Test for Concurrent Inference Pipeline")
     print("=" * 60)
     
     all_tests_passed = True
     
     # Check required files
-    print("\n📁 Checking required files...")
+    print("\nChecking required files...")
     required_files = [
         ('data/iris.csv', 'Dataset'),
         ('iris_pipeline.py', 'Model training script'),
@@ -126,7 +126,7 @@ def main():
     print("\n🐍 Checking Python packages...")
     if not check_python_imports():
         all_tests_passed = False
-        print("\n💡 Install missing packages with: pip install -r requirements.txt")
+        print("\nInstall missing packages with: pip install -r requirements.txt")
     
     # Test model training
     if not test_model_training():
@@ -138,23 +138,23 @@ def main():
     
     # Final summary
     print("\n" + "=" * 60)
-    print("📋 LOCAL SETUP TEST SUMMARY")
+    print("LOCAL SETUP TEST SUMMARY")
     print("=" * 60)
     
     if all_tests_passed:
-        print("🎉 ALL TESTS PASSED!")
-        print("✅ Your setup is ready for GCP deployment")
-        print("✅ All concurrent scaling components are working")
-        print("✅ GitHub Actions workflow should run successfully")
-        print("\n🚀 Next steps:")
+        print("ALL TESTS PASSED!")
+        print("Your setup is ready for GCP deployment")
+        print("All concurrent scaling components are working")
+        print("GitHub Actions workflow should run successfully")
+        print("\nNext steps:")
         print("   1. Commit and push your changes")
         print("   2. GitHub Actions will automatically deploy to GCP")
         print("   3. Concurrent scaling tests will run on deployed API")
         print("   4. Performance reports will be generated automatically")
     else:
-        print("❌ SOME TESTS FAILED!")
-        print("⚠️  Please fix the issues above before deploying to GCP")
-        print("\n🔧 Common fixes:")
+        print("SOME TESTS FAILED!")
+        print("Please fix the issues above before deploying to GCP")
+        print("\nCommon fixes:")
         print("   - Install missing Python packages: pip install -r requirements.txt")
         print("   - Check file paths and permissions")
         print("   - Verify script syntax")
