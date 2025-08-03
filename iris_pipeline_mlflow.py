@@ -69,8 +69,16 @@ class IrisMLflowPipeline:
                 logger.info(f"MLflow experiment '{experiment_name}' initialized with clean database")
             except Exception as retry_error:
                 logger.error(f"Failed to initialize MLflow even after cleanup: {retry_error}")
-                # Final fallback - use default tracking
-                mlflow.set_experiment(experiment_name)
+                # Final fallback - use default tracking without custom URI
+                try:
+                    # Reset MLflow to use default file-based tracking
+                    mlflow.set_tracking_uri(None)
+                    mlflow.set_experiment(experiment_name)
+                    logger.info(f"MLflow fallback successful with default tracking")
+                except Exception as final_error:
+                    logger.error(f"All MLflow initialization attempts failed: {final_error}")
+                    # Continue without MLflow tracking
+                    pass
         
     def load_data(self):
         """Load and prepare the Iris dataset."""
