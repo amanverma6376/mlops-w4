@@ -1,0 +1,412 @@
+name: IRIS Fairness and Explainability Analysis
+
+on:
+  workflow_dispatch:
+    inputs:
+      random_seed:
+        description: 'Random seed for reproducible results'
+        required: false
+        default: '42'
+        type: string
+      models:
+        description: 'Models to analyze (comma-separated: logistic_regression,random_forest)'
+        required: false
+        default: 'logistic_regression,random_forest'
+        type: string
+      generate_plots:
+        description: 'Generate SHAP and fairness plots'
+        required: false
+        default: true
+        type: boolean
+      skip_shap:
+        description: 'Skip SHAP analysis (faster execution)'
+        required: false
+        default: false
+        type: boolean
+  
+  # Can also trigger on push to specific branch for automatic testing
+  push:
+    branches: [ fairness-analysis ]
+  
+  # Trigger on pull requests affecting fairness-related files
+  pull_request:
+    paths:
+      - 'iris_fairness_analysis.py'
+      - 'requirements-fairness.txt'
+      - '.github/workflows/fairness_analysis.yml'
+
+jobs:
+  fairness-analysis:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.11.9']  # Match local environment version
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-fairness-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-fairness-
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-fairness.txt
+        pip install pytest pytest-cov  # For additional testing
+    
+    - name: Verify installation
+      run: |
+        python -c "import pandas, numpy, sklearn, matplotlib; print('Core packages imported successfully')"
+        python -c "import fairlearn, shap; print('Fairness and explainability packages imported successfully')"
+        python -c "from iris_fairness_analysis import IrisFairnessAnalysis; print('Custom fairness module imported successfully')"
+    
+    - name: Create data directory and setup dataset
+      run: |
+        # Create fresh data directory
+        mkdir -p data
+        python -c "
+        import pandas as pd
+        from sklearn.datasets import load_iris
+        import os
+        
+        if not os.path.exists('data/iris.csv'):
+            iris = load_iris()
+            df = pd.DataFrame(iris.data, columns=iris.feature_names)
+            df['species'] = iris.target_names[iris.target]
+            df.to_csv('data/iris.csv', index=False)
+            print('Created iris.csv dataset')
+            print(f'Original dataset shape: {df.shape}')
+        else:
+            df = pd.read_csv('data/iris.csv')
+            print(f'Using existing dataset with shape: {df.shape}')
+        "
+    
+    - name: Clean previous results
+      run: |
+        # Clean any previous fairness results
+        rm -rf fairness_results/
+        rm -f data/iris_with_location.csv
+        echo "Cleaned previous fairness analysis results"
+    
+    - name: Configure analysis parameters
+      run: |
+        # Set analysis parameters based on workflow inputs
+        echo "RANDOM_SEED=${{ github.event.inputs.random_seed || '42' }}" >> $GITHUB_ENV
+        echo "MODELS=${{ github.event.inputs.models || 'logistic_regression,random_forest' }}" >> $GITHUB_ENV
+        echo "GENERATE_PLOTS=${{ github.event.inputs.generate_plots || 'true' }}" >> $GITHUB_ENV
+        echo "SKIP_SHAP=${{ github.event.inputs.skip_shap || 'false' }}" >> $GITHUB_ENV
+        
+        echo "Analysis Configuration:"
+        echo "- Random Seed: ${{ github.event.inputs.random_seed || '42' }}"
+        echo "- Models: ${{ github.event.inputs.models || 'logistic_regression,random_forest' }}"
+        echo "- Generate Plots: ${{ github.event.inputs.generate_plots || 'true' }}"
+        echo "- Skip SHAP: ${{ github.event.inputs.skip_shap || 'false' }}"
+    
+    - name: Run Fairness and Explainability Analysis
+      run: |
+        echo "Starting IRIS Fairness and Explainability Analysis..."
+        echo "=================================================="
+        
+        # Run the complete fairness analysis
+        python iris_fairness_analysis.py
+        
+        echo "=================================================="
+        echo "Fairness analysis completed successfully!"
+    
+    - name: Generate analysis summary
+      run: |
+        python -c "
+        import os
+        import glob
+        import pandas as pd
+        
+        print('=== IRIS FAIRNESS & EXPLAINABILITY ANALYSIS SUMMARY ===')
+        print()
+        
+        # Check enhanced dataset
+        if os.path.exists('data/iris_with_location.csv'):
+            df = pd.read_csv('data/iris_with_location.csv')
+            print(f'Enhanced Dataset:')
+            print(f'  - File: data/iris_with_location.csv')
+            print(f'  - Shape: {df.shape}')
+            print(f'  - Location distribution: {dict(df[\"location\"].value_counts().sort_index())}')
+            print()
+        
+        # Check fairness results
+        if os.path.exists('fairness_results'):
+            result_files = glob.glob('fairness_results/*')
+            print(f'Fairness Results Directory:')
+            print(f'  - Total files generated: {len(result_files)}')
+            
+            # Categorize files
+            plot_files = [f for f in result_files if f.endswith('.png')]
+            report_files = [f for f in result_files if f.endswith('.md') or f.endswith('.txt')]
+            
+            print(f'  - Plot files: {len(plot_files)}')
+            for f in sorted(plot_files):
+                print(f'    • {os.path.basename(f)}')
+            
+            print(f'  - Report files: {len(report_files)}')
+            for f in sorted(report_files):
+                print(f'    • {os.path.basename(f)}')
+            print()
+        
+        # Check for specific key files
+        key_files = [
+            ('fairness_results/analysis_report.md', 'Main Analysis Report'),
+            ('fairness_results/shap_explanation.txt', 'SHAP Explanation'),
+            ('fairness_results/shap_summary_virginica.png', 'SHAP Summary Plot'),
+            ('fairness_results/shap_importance_virginica.png', 'SHAP Importance Plot'),
+            ('fairness_results/fairness_metrics_Logistic_Regression.png', 'LR Fairness Metrics'),
+            ('fairness_results/fairness_metrics_Random_Forest.png', 'RF Fairness Metrics')
+        ]
+        
+        print('Key Analysis Outputs:')
+        for filepath, description in key_files:
+            status = '✓' if os.path.exists(filepath) else '✗'
+            print(f'  {status} {description}')
+        
+        print()
+        print('=== ANALYSIS COMPLETE ===')
+        print()
+        print('Generated artifacts include:')
+        print('• Enhanced IRIS dataset with location attribute')
+        print('• Fairness analysis using fairlearn with demographic parity metrics')
+        print('• SHAP explainability analysis for virginica class predictions')
+        print('• Comprehensive visualizations and explanatory reports')
+        "
+    
+    - name: Validate analysis outputs
+      run: |
+        # Validate key outputs exist
+        VALIDATION_PASSED=true
+        
+        echo "Validating analysis outputs..."
+        
+        # Check enhanced dataset
+        if [ ! -f "data/iris_with_location.csv" ]; then
+          echo "❌ Enhanced dataset not found"
+          VALIDATION_PASSED=false
+        else
+          echo "✅ Enhanced dataset created"
+        fi
+        
+        # Check fairness results directory
+        if [ ! -d "fairness_results" ]; then
+          echo "❌ Fairness results directory not found"
+          VALIDATION_PASSED=false
+        else
+          echo "✅ Fairness results directory exists"
+        fi
+        
+        # Check main report
+        if [ ! -f "fairness_results/analysis_report.md" ]; then
+          echo "❌ Main analysis report not found"
+          VALIDATION_PASSED=false
+        else
+          echo "✅ Main analysis report generated"
+        fi
+        
+        # Check SHAP explanation
+        if [ ! -f "fairness_results/shap_explanation.txt" ]; then
+          echo "❌ SHAP explanation not found"
+          VALIDATION_PASSED=false
+        else
+          echo "✅ SHAP explanation generated"
+        fi
+        
+        if [ "$VALIDATION_PASSED" = true ]; then
+          echo "🎉 All validation checks passed!"
+        else
+          echo "⚠️ Some validation checks failed"
+          exit 1
+        fi
+    
+    - name: Create comprehensive summary report
+      run: |
+        # Create a comprehensive summary for the GitHub Actions run
+        echo "# IRIS Fairness and Explainability Analysis - GitHub Actions Report" > FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "**Generated**: $(date -u)" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "**Workflow**: Fairness Analysis CI/CD Pipeline" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "**Python Version**: ${{ matrix.python-version }}" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "**Random Seed**: ${{ env.RANDOM_SEED }}" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        
+        echo "## Executive Summary" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "This report demonstrates the successful implementation of fairness analysis and" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "explainability features for the IRIS classification dataset, incorporating:" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "- **Dataset Enhancement**: Added random location attribute (0/1) for bias analysis" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "- **Fairness Analysis**: Demographic parity and equalized odds analysis using fairlearn" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "- **Explainability**: SHAP analysis for virginica class predictions" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "- **Automated CI/CD**: Integrated into GitHub Actions for reproducible analysis" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        
+        # Include main analysis report if it exists
+        if [ -f "fairness_results/analysis_report.md" ]; then
+          echo "## Detailed Analysis Results" >> FAIRNESS_ANALYSIS_SUMMARY.md
+          echo "" >> FAIRNESS_ANALYSIS_SUMMARY.md
+          cat fairness_results/analysis_report.md >> FAIRNESS_ANALYSIS_SUMMARY.md
+        fi
+        
+        # Include SHAP explanation if it exists
+        if [ -f "fairness_results/shap_explanation.txt" ]; then
+          echo "" >> FAIRNESS_ANALYSIS_SUMMARY.md
+          echo "## SHAP Explainability Analysis" >> FAIRNESS_ANALYSIS_SUMMARY.md
+          echo "" >> FAIRNESS_ANALYSIS_SUMMARY.md
+          echo '```' >> FAIRNESS_ANALYSIS_SUMMARY.md
+          cat fairness_results/shap_explanation.txt >> FAIRNESS_ANALYSIS_SUMMARY.md
+          echo '```' >> FAIRNESS_ANALYSIS_SUMMARY.md
+        fi
+        
+        # Add file listing
+        echo "" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "## Generated Artifacts" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "### Enhanced Dataset" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo '```' >> FAIRNESS_ANALYSIS_SUMMARY.md
+        if [ -f "data/iris_with_location.csv" ]; then
+          echo "data/iris_with_location.csv - IRIS dataset with location attribute" >> FAIRNESS_ANALYSIS_SUMMARY.md
+          head -5 data/iris_with_location.csv >> FAIRNESS_ANALYSIS_SUMMARY.md
+        fi
+        echo '```' >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        
+        echo "### Analysis Outputs" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo '```' >> FAIRNESS_ANALYSIS_SUMMARY.md
+        if [ -d "fairness_results" ]; then
+          ls -la fairness_results/ >> FAIRNESS_ANALYSIS_SUMMARY.md
+        fi
+        echo '```' >> FAIRNESS_ANALYSIS_SUMMARY.md
+        
+        echo "" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "## Conclusion" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "The fairness and explainability analysis pipeline has been successfully integrated" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "into the MLOps workflow, providing automated bias detection and model interpretability" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "for production ML systems. This ensures responsible AI deployment with transparency" >> FAIRNESS_ANALYSIS_SUMMARY.md
+        echo "and accountability." >> FAIRNESS_ANALYSIS_SUMMARY.md
+    
+    - name: Upload fairness analysis results
+      uses: actions/upload-artifact@v4
+      with:
+        name: fairness-analysis-results-py${{ matrix.python-version }}
+        path: |
+          fairness_results/
+          data/iris_with_location.csv
+          FAIRNESS_ANALYSIS_SUMMARY.md
+        retention-days: 30
+    
+    - name: Upload visualization plots
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: fairness-plots-py${{ matrix.python-version }}
+        path: |
+          fairness_results/*.png
+        retention-days: 30
+    
+    - name: Upload analysis reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: fairness-reports-py${{ matrix.python-version }}
+        path: |
+          fairness_results/*.md
+          fairness_results/*.txt
+          FAIRNESS_ANALYSIS_SUMMARY.md
+        retention-days: 30
+    
+    - name: Comment on PR (if applicable)
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          
+          // Read summary report
+          let summaryContent = '';
+          try {
+            summaryContent = fs.readFileSync('FAIRNESS_ANALYSIS_SUMMARY.md', 'utf8');
+          } catch (e) {
+            summaryContent = 'Summary report not found';
+          }
+          
+          const comment = `
+          ## 🎯 IRIS Fairness and Explainability Analysis Results
+          
+          The fairness and explainability analysis has been completed successfully! 🎉
+          
+          ### 📊 Analysis Configuration
+          - **Python Version**: ${{ matrix.python-version }}
+          - **Random Seed**: ${{ env.RANDOM_SEED }}
+          - **Models Analyzed**: ${{ env.MODELS }}
+          - **Generate Plots**: ${{ env.GENERATE_PLOTS }}
+          - **Skip SHAP**: ${{ env.SKIP_SHAP }}
+          
+          ### 🔍 Key Features Implemented
+          ✅ **Dataset Enhancement**: Added location attribute for bias analysis
+          ✅ **Fairness Analysis**: Demographic parity and equalized odds metrics
+          ✅ **Explainability**: SHAP analysis for virginica class predictions
+          ✅ **Comprehensive Reporting**: Automated report generation
+          ✅ **Visualization**: Fairness metrics and SHAP plots
+          
+          ### 📁 Generated Artifacts
+          - Enhanced IRIS dataset with location attribute
+          - Fairness analysis visualizations
+          - SHAP explainability plots and explanations
+          - Comprehensive analysis reports
+          
+          ### 🎯 Key Insights
+          - **Bias Detection**: Location-based fairness metrics calculated
+          - **Model Interpretability**: Feature importance for virginica classification
+          - **Transparency**: Clear explanations of model decision-making
+          - **Reproducibility**: Seeded analysis for consistent results
+          
+          Check the uploaded artifacts for detailed results, visualizations, and comprehensive analysis reports!
+          
+          ### 📥 Download Links
+          Look for these artifacts in the workflow run:
+          - \`fairness-analysis-results-py${{ matrix.python-version }}\` - Complete analysis
+          - \`fairness-plots-py${{ matrix.python-version }}\` - Visualizations
+          - \`fairness-reports-py${{ matrix.python-version }}\` - Detailed reports
+          `;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+    
+    - name: Publish analysis status
+      run: |
+        echo "🎉 IRIS Fairness and Explainability Analysis completed successfully!"
+        echo "📊 Results saved and uploaded as artifacts"
+        echo "🔍 Check the Actions tab for detailed logs and downloadable results"
+        echo ""
+        echo "Key achievements:"
+        echo "• ✅ Enhanced IRIS dataset with location attribute"
+        echo "• ✅ Fairlearn bias analysis with demographic parity metrics"
+        echo "• ✅ SHAP explainability analysis for virginica predictions"
+        echo "• ✅ Comprehensive visualizations and reports"
+        echo "• ✅ Automated CI/CD integration"
+        echo ""
+        echo "This analysis ensures responsible AI deployment with built-in"
+        echo "fairness monitoring and explainability features! 🚀"
