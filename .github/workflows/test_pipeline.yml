@@ -176,6 +176,14 @@ jobs:
           echo "Building Docker image..."
           docker build -t $IMAGE_TAG -t $LATEST_TAG .
 
+          echo "Creating Artifact Registry repository if it doesn't exist..."
+          # Create repository explicitly to avoid createOnPush permission issues
+          gcloud artifacts repositories create gcr.io \
+            --repository-format=docker \
+            --location=us \
+            --description="Docker repository for MLOps pipeline" \
+            --project=innate-empire-468812-h0 || echo "Repository already exists or creation failed - continuing..."
+
           echo "Pushing Docker image to GCR..."
           docker push $IMAGE_TAG
           docker push $LATEST_TAG
