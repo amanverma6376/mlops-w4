@@ -5,8 +5,8 @@ import sqlite3
 
 def setup_mlflow_gcs():
     
-    PROJECT_ID = "citric-aleph-461515-j9"
-    BUCKET_NAME = "mlops-course-citric-aleph-461515-j9-unique"
+    PROJECT_ID = "innate-empire-468812-h0"
+    BUCKET_NAME = "mlops-course-innate-empire-468812-h0-unique"
     
     mlflow_dir = "./mlflow_tracking"
     os.makedirs(mlflow_dir, exist_ok=True)

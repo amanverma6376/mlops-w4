@@ -18,8 +18,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # MLflow configuration
-PROJECT_ID = "citric-aleph-461515-j9"
-BUCKET_NAME = "mlops-course-citric-aleph-461515-j9-unique"
+PROJECT_ID = "innate-empire-468812-h0"
+BUCKET_NAME = "mlops-course-innate-empire-468812-h0-unique"
 
 class IrisMLflowPipeline:
     def __init__(self):

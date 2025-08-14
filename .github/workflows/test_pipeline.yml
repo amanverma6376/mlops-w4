@@ -170,8 +170,8 @@ jobs:
       - name: Build Docker image
         run: |
           # Tag with commit SHA and latest
-          IMAGE_TAG="gcr.io/citric-aleph-461515-j9/iris-api:${{ github.sha }}"
-          LATEST_TAG="gcr.io/citric-aleph-461515-j9/iris-api:latest"
+          IMAGE_TAG="gcr.io/innate-empire-468812-h0/iris-api:${{ github.sha }}"
+          LATEST_TAG="gcr.io/innate-empire-468812-h0/iris-api:latest"
 
           echo "Building Docker image..."
           docker build -t $IMAGE_TAG -t $LATEST_TAG .
@@ -191,7 +191,7 @@ jobs:
       - name: Set up GKE cluster and credentials
         run: |
           # Set project
-          gcloud config set project citric-aleph-461515-j9
+          gcloud config set project innate-empire-468812-h0
 
           # Create unique cluster name using GitHub run ID
           CLUSTER_NAME="iris-k8s-${{ github.run_id }}"
@@ -229,7 +229,7 @@ jobs:
               --no-enable-cloud-monitoring \
               --no-enable-ip-alias \
               --enable-legacy-authorization \
-              --project=citric-aleph-461515-j9 \
+              --project=innate-empire-468812-h0 \
               --verbosity=info; then
               
               echo "Cluster created successfully in zone: $zone"
@@ -250,7 +250,7 @@ jobs:
 
           # Get cluster credentials with auth plugin
           echo "Getting cluster credentials for $CLUSTER_NAME in zone $CLUSTER_ZONE..."
-          gcloud container clusters get-credentials $CLUSTER_NAME --zone $CLUSTER_ZONE --project citric-aleph-461515-j9
+          gcloud container clusters get-credentials $CLUSTER_NAME --zone $CLUSTER_ZONE --project innate-empire-468812-h0
 
           # Set up kubectl authentication
           export USE_GKE_GCLOUD_AUTH_PLUGIN=True
@@ -290,14 +290,14 @@ jobs:
             --docker-server=gcr.io \
             --docker-username=_json_key \
             --docker-password="$(cat /tmp/gcr-key.json)" \
-            --docker-email=service-account@citric-aleph-461515-j9.iam.gserviceaccount.com \
+            --docker-email=service-account@innate-empire-468812-h0.iam.gserviceaccount.com \
             --namespace=iris-mlops --dry-run=client -o yaml | kubectl apply -f -
           rm -f /tmp/gcr-key.json
 
           # Update deployment image
           if [ -n "$IMAGE_TAG" ]; then
             echo "Using Docker image: $IMAGE_TAG"
-            sed -i "s|gcr.io/citric-aleph-461515-j9/iris-api:latest|$IMAGE_TAG|g" k8s/deployment.yaml
+            sed -i "s|gcr.io/innate-empire-468812-h0/iris-api:latest|$IMAGE_TAG|g" k8s/deployment.yaml
           else
             echo "IMAGE_TAG not available, using default image"
           fi
@@ -323,7 +323,7 @@ jobs:
           if [ -n "$IMAGE_TAG" ]; then
             echo "- **Image**: \`$IMAGE_TAG\`" >> report.md
           else
-            echo "- **Image**: \`gcr.io/citric-aleph-461515-j9/iris-api:latest\`" >> report.md
+            echo "- **Image**: \`gcr.io/innate-empire-468812-h0/iris-api:latest\`" >> report.md
           fi
           echo "- **Registry**: Google Container Registry (GCR)" >> report.md
           echo "" >> report.md
@@ -962,7 +962,7 @@ jobs:
           if [ -n "$CLUSTER_NAME" ] && [ -n "$CLUSTER_ZONE" ]; then
             echo "Cleaning up cluster: $CLUSTER_NAME"
             echo "Deleting cluster $CLUSTER_NAME in zone $CLUSTER_ZONE..."
-            gcloud container clusters delete "$CLUSTER_NAME" --zone="$CLUSTER_ZONE" --project=citric-aleph-461515-j9 --quiet --async
+            gcloud container clusters delete "$CLUSTER_NAME" --zone="$CLUSTER_ZONE" --project=innate-empire-468812-h0 --quiet --async
             echo "Cluster deletion initiated (async)"
           else
             echo "No cluster information found to clean up"

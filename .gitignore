@@ -15,3 +15,6 @@ old-deployment-artifacts
 deployment-artifacts (1)
 .venv
 fairness_results/
+setup_gcp_permissions.sh
+setup_with_personal_account.sh
+verify_gcp_setup.sh

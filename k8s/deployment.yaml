@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: iris-api
-        image: gcr.io/citric-aleph-461515-j9/iris-api:latest
+        image: gcr.io/innate-empire-468812-h0/iris-api:latest
         ports:
         - containerPort: 8000
           name: http

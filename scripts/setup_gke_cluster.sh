@@ -6,7 +6,7 @@
 set -e
 
 # Configuration variables
-PROJECT_ID="citric-aleph-461515-j9"
+PROJECT_ID="innate-empire-468812-h0"
 CLUSTER_NAME="iris-k8s-cluster"
 ZONE="us-central1-a"
 REGION="us-central1"

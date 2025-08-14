@@ -6,7 +6,7 @@
 set -e
 
 # Configuration variables
-PROJECT_ID="citric-aleph-461515-j9"
+PROJECT_ID="innate-empire-468812-h0"
 IMAGE_NAME="iris-api"
 IMAGE_TAG="latest"
 NAMESPACE="iris-mlops"
@@ -39,7 +39,7 @@ echo "Image pushed successfully!"
 
 # Update Kubernetes deployment with new image
 echo "Updating Kubernetes deployment..."
-sed -i.bak "s|gcr.io/citric-aleph-461515-j9/iris-api:latest|$FULL_IMAGE_NAME|g" k8s/deployment.yaml
+sed -i.bak "s|gcr.io/innate-empire-468812-h0/iris-api:latest|$FULL_IMAGE_NAME|g" k8s/deployment.yaml
 
 # Apply Kubernetes manifests
 echo "Deploying to Kubernetes..."
